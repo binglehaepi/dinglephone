@@ -272,6 +272,109 @@ const SortableIconItem: React.FC<SortableIconItemProps> = ({
   );
 };
 
+// ── Sortable 폴더 아이템 래퍼 ──
+interface SortableFolderItemProps {
+  item: HomeItem;
+  themeObj: ReturnType<typeof useTheme>['theme'];
+  isEditMode: boolean;
+  isSelected: boolean;
+  hasSelection: boolean;
+  onClick: () => void;
+}
+
+const SortableFolderItem: React.FC<SortableFolderItemProps> = ({
+  item,
+  themeObj,
+  isEditMode,
+  isSelected,
+  hasSelection,
+  onClick,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: item.id,
+    disabled: !isEditMode,
+  });
+
+  const sortableStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition: transition || undefined,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.5 : hasSelection && !isSelected ? 0.65 : 1,
+  };
+
+  const editStyle: React.CSSProperties = isEditMode
+    ? {
+        animation: isSelected || isDragging
+          ? 'none'
+          : `jiggle 0.3s ease-in-out infinite alternate`,
+        animationDelay: getJiggleDelay(item.id),
+        outline: isSelected ? '2.5px solid var(--accent)' : 'none',
+        outlineOffset: isSelected ? 3 : 0,
+        borderRadius: 14,
+      }
+    : {};
+
+  const children = item.folderChildren || [];
+  const previewItems = children.slice(0, 4); // 미리보기용 최대 4개
+
+  return (
+    <motion.button
+      ref={setNodeRef}
+      onClick={onClick}
+      className={`flex flex-col items-center gap-1.5 ${isEditMode ? 'cursor-grab active:cursor-grabbing' : ''}`}
+      whileTap={isEditMode ? undefined : { scale: 0.9 }}
+      transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+      style={{ ...sortableStyle, ...editStyle }}
+      {...attributes}
+      {...(isEditMode ? listeners : {})}
+    >
+      {/* 폴더 아이콘: 2x2 미니 그리드 */}
+      <div
+        className="w-14 h-14 rounded-[16px] grid grid-cols-2 grid-rows-2 gap-[2px] p-[5px] overflow-hidden"
+        style={{
+          background: 'var(--bg-elevated)',
+          border: '1.5px solid var(--border)',
+          boxShadow: '0 1px 4px rgba(61,47,47,0.08)',
+        }}
+      >
+        {previewItems.map((child) => {
+          const ChildIcon = iconComponentMap[child.id];
+          const themeIcon = themeObj.iconColors[child.id];
+          const bg = themeIcon?.bg ?? child.iconBg;
+          const color = themeIcon?.color ?? 'var(--text-primary)';
+          return (
+            <div
+              key={child.id}
+              className="rounded-[4px] flex items-center justify-center overflow-hidden"
+              style={{ background: bg }}
+            >
+              {child.customIconUrl ? (
+                <img src={child.customIconUrl} alt="" className="w-full h-full object-cover" draggable={false} />
+              ) : ChildIcon ? (
+                <ChildIcon size={10} color={color} strokeWidth={2} />
+              ) : (
+                <span className="text-[8px]">{child.icon}</span>
+              )}
+            </div>
+          );
+        })}
+        {/* 비어있는 슬롯 */}
+        {Array.from({ length: Math.max(0, 4 - previewItems.length) }).map((_, i) => (
+          <div key={`empty-${i}`} className="rounded-[4px]" style={{ background: 'var(--bg-sunken)' }} />
+        ))}
+      </div>
+      <span className="text-[11px] text-ink-secondary">{item.folderName || item.name || '폴더'}</span>
+    </motion.button>
+  );
+};
+
 // ── HomeGrid 메인 컴포넌트 ──
 export const HomeGrid: React.FC<HomeGridProps> = ({
   items,
@@ -304,6 +407,7 @@ export const HomeGrid: React.FC<HomeGridProps> = ({
           }
 
           const isWidget = item.type === 'widget';
+          const isFolder = item.type === 'folder';
           const appId = isWidget ? (item.appId || item.id) : item.id;
           const isSelected = isEditMode && selectedItemId === item.id;
           const hasSelection = isEditMode && selectedItemId !== null;
@@ -311,10 +415,26 @@ export const HomeGrid: React.FC<HomeGridProps> = ({
           const handleClick = () => {
             if (isEditMode && onSelectItem) {
               onSelectItem(item.id);
+            } else if (isFolder) {
+              onAppOpen(`__folder_${item.id}`);
             } else {
               onAppOpen(isWidget ? appId : item.id);
             }
           };
+
+          if (isFolder) {
+            return (
+              <SortableFolderItem
+                key={item.id}
+                item={item}
+                themeObj={themeObj}
+                isEditMode={isEditMode}
+                isSelected={isSelected}
+                hasSelection={hasSelection}
+                onClick={handleClick}
+              />
+            );
+          }
 
           if (isWidget && item.widgetFrame) {
             return (

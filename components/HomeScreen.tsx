@@ -4,7 +4,7 @@ import {
   Camera, CalendarDays, Music, FileText,
   Globe, MapPin, ShoppingBag, Wallet,
   MessageCircle, Heart, Settings, Store, Search, Home,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, FolderPlus, FolderOpen, X,
 } from 'lucide-react';
 import {
   DndContext,
@@ -176,6 +176,9 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
   const [isEditMode, setIsEditMode] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
 
+  // ── 폴더 상태 ──
+  const [openFolderId, setOpenFolderId] = useState<string | null>(null);
+
   // ── 길게 누르기 감지 ──
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -249,19 +252,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
     },
     [appLayout, phone.homeScreen, updateCurrentPhone],
   );
-
-  // ── 아이템 탭 선택 (교환 없음, 선택만 변경) ──
-  const handleSelectItem = useCallback((itemId: string) => {
-    if (!isEditMode) return;
-
-    if (selectedItemId === itemId) {
-      // 같은 아이템 다시 탭 → 선택 해제
-      setSelectedItemId(null);
-    } else {
-      // 다른 아이템 탭 → 선택 대상 변경
-      setSelectedItemId(itemId);
-    }
-  }, [isEditMode, selectedItemId]);
 
   // ── 스페이서(빈 칸) 클릭 → 선택된 아이템을 해당 위치로 이동 ──
   const handleSpacerClick = useCallback((spacerId: string) => {
@@ -450,6 +440,140 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
     updateCurrentPhone({ homeScreen: { ...phone.homeScreen, appLayout: newLayout } });
   }, [appLayout, phone.homeScreen, updateCurrentPhone]);
 
+  // ── 폴더 만들기: 선택된 아이템을 새 폴더에 넣기 ──
+  const handleCreateFolder = useCallback(() => {
+    if (!selectedItemId) return;
+    const selectedIdx = appLayout.findIndex(item => item.id === selectedItemId);
+    if (selectedIdx < 0) return;
+    const selected = appLayout[selectedIdx];
+    if (selected.type === 'spacer' || selected.type === 'folder') return;
+
+    const folderId = `folder_${Date.now()}`;
+    const folder: HomeItem = {
+      id: folderId,
+      type: 'folder',
+      icon: '📁',
+      name: '새 폴더',
+      iconBg: 'transparent',
+      folderName: '새 폴더',
+      folderChildren: [{ ...selected, type: undefined }],
+    };
+
+    const newLayout = [...appLayout];
+    newLayout[selectedIdx] = folder;
+    updateCurrentPhone({ homeScreen: { ...phone.homeScreen, appLayout: newLayout } });
+    setSelectedItemId(folderId);
+  }, [selectedItemId, appLayout, phone.homeScreen, updateCurrentPhone]);
+
+  // ── 폴더에 선택한 아이템 넣기 (드래그 대신 탭) ──
+  const handleAddToFolder = useCallback((folderId: string) => {
+    if (!selectedItemId || selectedItemId === folderId) return;
+    const selectedIdx = appLayout.findIndex(item => item.id === selectedItemId);
+    const folderIdx = appLayout.findIndex(item => item.id === folderId);
+    if (selectedIdx < 0 || folderIdx < 0) return;
+
+    const selected = appLayout[selectedIdx];
+    const folder = appLayout[folderIdx];
+    if (selected.type === 'spacer' || selected.type === 'folder' || folder.type !== 'folder') return;
+
+    // 폴더 최대 9개
+    if ((folder.folderChildren?.length || 0) >= 9) return;
+
+    const newLayout = [...appLayout];
+    // 선택된 아이템을 스페이서로 교체
+    let spacerIdx = getMaxSpacerIdx(appLayout) + 1;
+    newLayout[selectedIdx] = createSpacer(spacerIdx);
+    // 폴더에 아이템 추가
+    newLayout[folderIdx] = {
+      ...folder,
+      folderChildren: [...(folder.folderChildren || []), { ...selected, type: undefined }],
+    };
+    updateCurrentPhone({ homeScreen: { ...phone.homeScreen, appLayout: newLayout } });
+    setSelectedItemId(null);
+  }, [selectedItemId, appLayout, phone.homeScreen, updateCurrentPhone]);
+
+  // ── 아이템 탭 선택 (교환 없음, 선택만 변경 / 폴더에 넣기) ──
+  const handleSelectItem = useCallback((itemId: string) => {
+    if (!isEditMode) return;
+
+    if (selectedItemId === itemId) {
+      setSelectedItemId(null);
+    } else if (selectedItemId) {
+      const tappedItem = appLayout.find(item => item.id === itemId);
+      const selectedItemObj = appLayout.find(item => item.id === selectedItemId);
+      if (tappedItem?.type === 'folder' && selectedItemObj && selectedItemObj.type !== 'spacer' && selectedItemObj.type !== 'folder') {
+        handleAddToFolder(itemId);
+        return;
+      }
+      setSelectedItemId(itemId);
+    } else {
+      setSelectedItemId(itemId);
+    }
+  }, [isEditMode, selectedItemId, appLayout, handleAddToFolder]);
+
+  // ── 폴더 해제: 폴더를 풀어서 자식들을 개별 아이템으로 되돌리기 ──
+  const handleUnfoldFolder = useCallback((folderId: string) => {
+    const folderIdx = appLayout.findIndex(item => item.id === folderId);
+    if (folderIdx < 0) return;
+    const folder = appLayout[folderIdx];
+    if (folder.type !== 'folder' || !folder.folderChildren?.length) return;
+
+    const children = folder.folderChildren.map(child => ({
+      ...child,
+      type: child.type || undefined,
+    })) as HomeItem[];
+
+    // 폴더 자리에 첫 번째 자식, 나머지는 뒤에 삽입
+    const newLayout = [...appLayout];
+    newLayout.splice(folderIdx, 1, ...children);
+
+    updateCurrentPhone({ homeScreen: { ...phone.homeScreen, appLayout: newLayout } });
+    setSelectedItemId(null);
+  }, [appLayout, phone.homeScreen, updateCurrentPhone]);
+
+  // ── 폴더에서 아이템 꺼내기 ──
+  const handleRemoveFromFolder = useCallback((folderId: string, childId: string) => {
+    const folderIdx = appLayout.findIndex(item => item.id === folderId);
+    if (folderIdx < 0) return;
+    const folder = appLayout[folderIdx];
+    if (folder.type !== 'folder' || !folder.folderChildren) return;
+
+    const child = folder.folderChildren.find(c => c.id === childId);
+    if (!child) return;
+
+    const remainingChildren = folder.folderChildren.filter(c => c.id !== childId);
+    const newLayout = [...appLayout];
+
+    if (remainingChildren.length === 0) {
+      // 폴더가 비면 해제된 아이템으로 교체
+      newLayout[folderIdx] = { ...child, type: undefined } as HomeItem;
+    } else {
+      // 폴더 업데이트 + 아이템을 폴더 바로 뒤에 삽입
+      newLayout[folderIdx] = { ...folder, folderChildren: remainingChildren };
+      newLayout.splice(folderIdx + 1, 0, { ...child, type: undefined } as HomeItem);
+    }
+
+    updateCurrentPhone({ homeScreen: { ...phone.homeScreen, appLayout: newLayout } });
+  }, [appLayout, phone.homeScreen, updateCurrentPhone]);
+
+  // ── 폴더 이름 변경 ──
+  const handleRenameFolderFromEdit = useCallback((folderId: string, newName: string) => {
+    const newLayout = appLayout.map(item => {
+      if (item.id !== folderId) return item;
+      return { ...item, folderName: newName, name: newName };
+    });
+    updateCurrentPhone({ homeScreen: { ...phone.homeScreen, appLayout: newLayout } });
+  }, [appLayout, phone.homeScreen, updateCurrentPhone]);
+
+  // ── 폴더 열기/닫기 핸들러 ──
+  const handleAppOpen = useCallback((appId: string) => {
+    if (appId.startsWith('__folder_')) {
+      const folderId = appId.replace('__folder_', '');
+      setOpenFolderId(folderId);
+    } else {
+      onOpenApp(appId);
+    }
+  }, [onOpenApp]);
 
   // 스크롤 이벤트 핸들러
   const handleScroll = useCallback(() => {
@@ -534,7 +658,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
                   <HomeGrid
                     items={pageItems}
                     phone={phone}
-                    onAppOpen={onOpenApp}
+                    onAppOpen={handleAppOpen}
                     themeObj={theme}
                     isEditMode={isEditMode}
                     selectedItemId={selectedItemId}
@@ -595,11 +719,35 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
                   <span className="text-[10px]" style={{ color: 'var(--text-tertiary)' }}>
                     {selectedItem.type === 'widget'
                       ? `위젯 · ${WIDGET_FRAME_LIST.find(f => f.type === selectedItem.widgetFrame)?.name || ''}`
+                      : selectedItem.type === 'folder'
+                      ? `폴더 · ${selectedItem.folderChildren?.length || 0}개`
                       : '아이콘'}
                   </span>
+                  {/* 폴더 관련 액션 */}
+                  {selectedItem.type !== 'folder' && selectedItem.type !== 'spacer' && (
+                    <button
+                      onClick={handleCreateFolder}
+                      className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium active:scale-95"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                    >
+                      <FolderPlus size={11} />
+                      폴더로
+                    </button>
+                  )}
+                  {selectedItem.type === 'folder' && (
+                    <button
+                      onClick={() => handleUnfoldFolder(selectedItem.id)}
+                      className="ml-auto flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium active:scale-95"
+                      style={{ background: 'var(--bg-secondary)', color: 'var(--text-secondary)' }}
+                    >
+                      <FolderOpen size={11} />
+                      폴더 해제
+                    </button>
+                  )}
                 </div>
 
-                {/* 프레임 선택 */}
+                {/* 프레임 선택 (폴더가 아닌 경우만) */}
+                {selectedItem.type !== 'folder' && (
                 <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">
                   {/* 아이콘 모드 */}
                   <button
@@ -632,6 +780,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
                     );
                   })}
                 </div>
+                )}
               </div>
             )}
 
@@ -793,6 +942,95 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
           </div>
         </div>
       )}
+
+      {/* ── 폴더 오버레이 ── */}
+      <AnimatePresence>
+        {openFolderId && (() => {
+          const folder = appLayout.find(item => item.id === openFolderId);
+          if (!folder || folder.type !== 'folder' || !folder.folderChildren) return null;
+          return (
+            <motion.div
+              key="folder-overlay"
+              className="absolute inset-0 z-50 flex items-center justify-center"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              {/* 배경 딤 */}
+              <div
+                className="absolute inset-0 bg-black/40 backdrop-blur-md"
+                onClick={() => setOpenFolderId(null)}
+              />
+              {/* 폴더 내용 */}
+              <motion.div
+                className="relative z-10 w-[85%] rounded-3xl p-5"
+                style={{
+                  background: 'var(--bg-elevated)',
+                  border: '1px solid var(--border)',
+                  boxShadow: '0 8px 40px rgba(0,0,0,0.15)',
+                }}
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.8, opacity: 0 }}
+                transition={{ type: 'spring', damping: 22, stiffness: 300 }}
+              >
+                {/* 폴더 이름 */}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-[15px] font-bold" style={{ color: 'var(--text-primary)' }}>
+                    {folder.folderName || '폴더'}
+                  </h3>
+                  <button
+                    onClick={() => setOpenFolderId(null)}
+                    className="w-7 h-7 rounded-full flex items-center justify-center"
+                    style={{ background: 'var(--bg-secondary)' }}
+                  >
+                    <X size={14} style={{ color: 'var(--text-secondary)' }} />
+                  </button>
+                </div>
+                {/* 앱 그리드 */}
+                <div className="grid grid-cols-3 gap-4">
+                  {folder.folderChildren.map((child) => {
+                    const IconComponent = iconComponentMap[child.id];
+                    const themeIcon = theme.iconColors[child.id];
+                    const bg = themeIcon?.bg ?? child.iconBg;
+                    const color = themeIcon?.color ?? 'var(--text-primary)';
+                    return (
+                      <motion.button
+                        key={child.id}
+                        className="flex flex-col items-center gap-1.5"
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setOpenFolderId(null);
+                          onOpenApp(child.id);
+                        }}
+                      >
+                        <div
+                          className="w-14 h-14 rounded-[16px] flex items-center justify-center overflow-hidden"
+                          style={{
+                            background: bg,
+                            border: `1.5px solid ${bg}`,
+                            boxShadow: '0 1px 3px rgba(61,47,47,0.05)',
+                          }}
+                        >
+                          {child.customIconUrl ? (
+                            <img src={child.customIconUrl} alt={child.name} className="w-full h-full object-cover" draggable={false} />
+                          ) : IconComponent ? (
+                            <IconComponent size={24} color={color} strokeWidth={1.8} />
+                          ) : (
+                            <span className="text-[22px]">{child.icon}</span>
+                          )}
+                        </div>
+                        <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>{child.name}</span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
       {/* jiggle 키프레임 */}
       {isEditMode && (

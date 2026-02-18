@@ -137,15 +137,17 @@ export interface AppIconData {
   iconShape?: IconShape;
 }
 
-// 홈 화면 아이템 = 아이콘 또는 위젯 또는 빈 공간
+// 홈 화면 아이템 = 아이콘 또는 위젯 또는 빈 공간 또는 폴더
 export interface HomeItem extends AppIconData {
-  type?: 'icon' | 'widget' | 'spacer';  // 기본값 'icon', 'spacer'=빈 그리드 셀
+  type?: 'icon' | 'widget' | 'spacer' | 'folder';  // 기본값 'icon', 'spacer'=빈 그리드 셀, 'folder'=앱 그룹
   appId?: string;                   // 위젯이 연결된 앱 (type='widget'일 때)
   widgetFrame?: WidgetFrameType;
   widgetColor?: string;
   widgetLabel?: string;
   widgetSpan?: { cols: number; rows: number };
   widgetShowIcon?: boolean;  // true면 위젯 내부에 앱 아이콘 표시, false면 콘텐츠 미리보기
+  folderChildren?: HomeItem[];  // type='folder'일 때 포함된 앱들
+  folderName?: string;          // 폴더 이름
 }
 
 export interface MapWishItem {

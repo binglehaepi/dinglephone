@@ -1,10 +1,19 @@
 import React, { useState, useRef } from 'react';
-import { ChevronDown, ChevronLeft, Plus, Trash2, ChevronRight as ChevronR, Grid3X3, LayoutGrid, Square } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Plus, Trash2, ChevronRight as ChevronR, Grid3X3, LayoutGrid, Square, ImagePlus } from 'lucide-react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { DinglePhoneData, PhotoItem } from '../../types';
 import { usePhone } from '../../context/PhoneContext';
 import { EditSheet, DingleInput, SaveButton } from '../EditSheet';
 import { compressImage } from '../../lib/wallpaper';
+
+function generateUUID(): string {
+  try { return crypto.randomUUID(); } catch {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+      const r = (Math.random() * 16) | 0;
+      return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+    });
+  }
+}
 
 interface PhotosAppProps {
   data: DinglePhoneData;
@@ -22,9 +31,11 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
   const [newTags, setNewTags] = useState('');
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [compressProgress, setCompressProgress] = useState('');
   const [layout, setLayout] = useState<'grid3' | 'grid2' | 'single'>('grid3');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addFileRef = useRef<HTMLInputElement>(null);
+  const bulkFileRef = useRef<HTMLInputElement>(null);
 
   const items = data.apps.photos.items;
 
@@ -39,10 +50,49 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
     setIsCompressing(false);
   };
 
+  // ── 여러 사진 한번에 추가 ──
+  const handleBulkAdd = async (files: FileList) => {
+    if (!currentPhone || files.length === 0) return;
+    setIsCompressing(true);
+    const newItems: PhotoItem[] = [];
+    const total = files.length;
+
+    for (let i = 0; i < total; i++) {
+      setCompressProgress(`${i + 1}/${total}`);
+      try {
+        const dataUrl = await compressImage(files[i]);
+        newItems.push({
+          id: generateUUID(),
+          imageUrl: dataUrl,
+          emoji: '📸',
+          color: '#F0F0F0',
+          caption: '',
+          memo: '',
+          date: new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: '2-digit', day: '2-digit' }).replace(/\./g, '.').replace(/\s/g, ''),
+          location: '',
+          tags: [],
+        });
+      } catch {
+        // 실패한 파일 건너뜀
+      }
+    }
+
+    if (newItems.length > 0) {
+      const updated = {
+        ...currentPhone.apps.photos,
+        items: [...currentPhone.apps.photos.items, ...newItems],
+      };
+      updateAppData('photos', updated);
+    }
+
+    setIsCompressing(false);
+    setCompressProgress('');
+  };
+
   const handleAdd = () => {
     if (!currentPhone || (!pendingImage && !newCaption.trim())) return;
     const newItem: PhotoItem = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       imageUrl: pendingImage || undefined,
       emoji: '📸',
       color: '#F0F0F0',
@@ -225,12 +275,25 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
             );
           })}
           {isEditable && (
-            <button
-              onClick={() => setShowAdd(true)}
-              className="w-7 h-7 rounded-full flex items-center justify-center bg-black/10 ml-1"
-            >
-              <Plus size={14} className="text-ink" />
-            </button>
+            <>
+              {/* 여러 장 한번에 추가 */}
+              <button
+                onClick={() => bulkFileRef.current?.click()}
+                disabled={isCompressing}
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-black/10 ml-1"
+                title="여러 장 추가"
+              >
+                <ImagePlus size={13} className="text-ink" />
+              </button>
+              {/* 한 장씩 상세 추가 */}
+              <button
+                onClick={() => setShowAdd(true)}
+                className="w-7 h-7 rounded-full flex items-center justify-center bg-black/10 ml-0.5"
+                title="상세 추가"
+              >
+                <Plus size={14} className="text-ink" />
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -304,18 +367,28 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
           <div className="text-center py-16">
             <div className="text-4xl mb-3">📸</div>
             <p className="text-sm text-ink-tertiary mb-3">아직 사진이 없어요</p>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="text-sm font-bold px-4 py-2 rounded-full"
-              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
-            >
-              + 첫 사진 추가
-            </button>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                onClick={() => bulkFileRef.current?.click()}
+                disabled={isCompressing}
+                className="text-sm font-bold px-4 py-2 rounded-full"
+                style={{ background: 'var(--accent)', color: '#fff' }}
+              >
+                📷 사진 여러 장 추가
+              </button>
+              <button
+                onClick={() => setShowAdd(true)}
+                className="text-xs px-3 py-1.5 rounded-full"
+                style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              >
+                + 상세 정보와 함께 추가
+              </button>
+            </div>
           </div>
         )}
       </div>
 
-      {/* Hidden file input for add */}
+      {/* Hidden file input for single add */}
       <input
         ref={addFileRef}
         type="file"
@@ -327,6 +400,30 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
           e.target.value = '';
         }}
       />
+
+      {/* Hidden file input for bulk add (여러 장) */}
+      <input
+        ref={bulkFileRef}
+        type="file"
+        accept="image/*"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          const files = e.target.files;
+          if (files && files.length > 0) handleBulkAdd(files);
+          e.target.value = '';
+        }}
+      />
+
+      {/* 처리 중 오버레이 */}
+      {isCompressing && compressProgress && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl px-6 py-4 flex flex-col items-center gap-2 shadow-xl">
+            <div className="w-8 h-8 border-3 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--accent)', borderTopColor: 'transparent' }} />
+            <span className="text-sm font-medium text-ink">사진 처리 중... {compressProgress}</span>
+          </div>
+        </div>
+      )}
 
       {/* Add Photo Sheet */}
       <EditSheet isOpen={showAdd} onClose={() => { setShowAdd(false); setPendingImage(null); }} title="📸 사진 추가">
