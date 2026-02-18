@@ -69,8 +69,7 @@ const App: React.FC = () => {
                 Dingle Phone
             </h1>
             <p className="text-xl text-ink-secondary leading-relaxed">
-               빙글빙글 딩글딩글<br/>
-               핸드폰 훔쳐보기 ♡
+               나만의 캐릭터 폰 꾸미기
             </p>
          </div>
          
@@ -81,7 +80,7 @@ const App: React.FC = () => {
                </div>
                <div>
                   <h3 className="font-bold text-ink">Dingle Theme</h3>
-                  <p className="text-sm text-ink-tertiary">빙글빙글 딩글딩글 크림 컬러 테마</p>
+                  <p className="text-sm text-ink-tertiary">크림 컬러 기본 테마</p>
                </div>
             </div>
          </div>

@@ -51,8 +51,10 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
   };
 
   // ── 여러 사진 한번에 추가 ──
-  const handleBulkAdd = async (files: FileList) => {
-    if (!currentPhone || files.length === 0) return;
+  const handleBulkAdd = async (fileList: FileList) => {
+    if (!currentPhone || fileList.length === 0) return;
+    // FileList를 배열로 복사 (input value 리셋 시 FileList가 비워지므로)
+    const files = Array.from(fileList);
     setIsCompressing(true);
     const newItems: PhotoItem[] = [];
     const total = files.length;

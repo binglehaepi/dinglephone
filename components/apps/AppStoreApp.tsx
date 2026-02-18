@@ -109,7 +109,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({ data, onClose }) => {
                  </div>
                  <div className="flex-1 py-1">
                      <h1 className="text-xl font-bold mb-1 text-ink">Dingle Phone</h1>
-                     <p className="text-sm text-ink-secondary mb-3">빙글빙글 딩글딩글 🥥</p>
+                     <p className="text-sm text-ink-secondary mb-3">나만의 캐릭터 폰 꾸미기 🥥</p>
                      <div className="flex gap-2">
                          <span className="bg-cream-200 text-ink-tertiary text-[10px] px-2 py-1 rounded-md border border-cream-300">
                              Character
