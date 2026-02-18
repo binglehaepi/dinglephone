@@ -145,27 +145,23 @@ export const MusicApp: React.FC<MusicAppProps> = ({ data, onClose }) => {
         style={{ background: currentSong.albumColor }}
       />
       
-      {/* Header */}
-      <div className="pt-[54px] px-6 flex items-center justify-between relative z-10">
-           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+      {/* Header — 투명 */}
+      <div className="pt-[54px] px-4 flex items-center justify-between sticky top-0 z-10 bg-cream-100/95 backdrop-blur-xl">
+           <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
              <ChevronDown size={16} className="text-ink" />
            </button>
-           <span className="text-sm font-bold tracking-widest uppercase text-ink-secondary font-display">
-             Playlist
-           </span>
            <div className="flex items-center gap-2">
              {isEditable && (
                <button
                  onClick={() => setShowAdd(true)}
-                 className="w-8 h-8 rounded-xl flex items-center justify-center"
-                 style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                 className="w-8 h-8 rounded-full flex items-center justify-center bg-black/10"
                >
-                 <Plus size={14} />
+                 <Plus size={14} className="text-ink" />
                </button>
              )}
              <button
                onClick={() => currentSong.sourceUrl ? openExternal(currentSong.sourceUrl) : setShowList(!showList)}
-               className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center text-ink-secondary"
+               className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center text-ink-secondary"
              >
                {currentSong.sourceUrl ? <ExternalLink size={14} /> : <ListMusic size={14} />}
              </button>

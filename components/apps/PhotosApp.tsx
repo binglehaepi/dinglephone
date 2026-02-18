@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { ChevronDown, ChevronLeft, Plus, Trash2, ChevronRight as ChevronR } from 'lucide-react';
+import { ChevronDown, ChevronLeft, Plus, Trash2, ChevronRight as ChevronR, Grid3X3, LayoutGrid, Square } from 'lucide-react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
 import { DinglePhoneData, PhotoItem } from '../../types';
 import { usePhone } from '../../context/PhoneContext';
@@ -22,6 +22,7 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
   const [newTags, setNewTags] = useState('');
   const [pendingImage, setPendingImage] = useState<string | null>(null);
   const [isCompressing, setIsCompressing] = useState(false);
+  const [layout, setLayout] = useState<'grid3' | 'grid2' | 'single'>('grid3');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const addFileRef = useRef<HTMLInputElement>(null);
 
@@ -201,54 +202,103 @@ export const PhotosApp: React.FC<PhotosAppProps> = ({ data, onClose }) => {
   // ── Grid View ──
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink">
-      {/* Header */}
-      <div className="pt-[54px] pb-4 px-6 flex items-center justify-between sticky top-0 bg-cream-100/95 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2">
-          <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
-            <ChevronLeft size={16} className="text-ink" />
-          </button>
-          <span className="text-base font-semibold text-ink">사진첩</span>
-        </div>
-        <div className="flex items-center gap-2">
+      {/* Header — 투명 */}
+      <div className="pt-[54px] pb-2 px-4 flex items-center justify-between sticky top-0 z-10 bg-cream-100/95 backdrop-blur-xl">
+        <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
+          <ChevronLeft size={16} className="text-ink" />
+        </button>
+        <div className="flex items-center gap-1.5">
+          {/* 레이아웃 전환 버튼 */}
+          {(['grid3', 'grid2', 'single'] as const).map((mode) => {
+            const Icon = mode === 'grid3' ? Grid3X3 : mode === 'grid2' ? LayoutGrid : Square;
+            return (
+              <button
+                key={mode}
+                onClick={() => setLayout(mode)}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${
+                  layout === mode ? 'bg-black/20' : 'bg-black/5'
+                }`}
+                style={{ backdropFilter: 'blur(8px)' }}
+              >
+                <Icon size={13} className={layout === mode ? 'text-ink' : 'text-ink/40'} />
+              </button>
+            );
+          })}
           {isEditable && (
             <button
               onClick={() => setShowAdd(true)}
-              className="w-8 h-8 rounded-full flex items-center justify-center"
-              style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+              className="w-7 h-7 rounded-full flex items-center justify-center bg-black/10 ml-1"
             >
-              <Plus size={16} />
+              <Plus size={14} className="text-ink" />
             </button>
           )}
-          <span className="text-sm text-ink-tertiary font-display">{items.length}</span>
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 overflow-y-auto no-scrollbar px-1 pb-8">
-        <div className="grid grid-cols-3 gap-[2px]">
-          {items.map((item, i) => (
-            <button
-              key={item.id}
-              className="aspect-square relative overflow-hidden active:opacity-80"
-              onClick={() => { setSwipeDir(0); setSelectedIndex(i); }}
-            >
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt={item.caption}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div
-                  className="w-full h-full flex items-center justify-center"
-                  style={{ background: item.color }}
-                >
-                  <span className="text-[32px]">{item.emoji}</span>
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+      {/* Photo Grid / List */}
+      <div className="flex-1 overflow-y-auto no-scrollbar pb-8">
+        {layout === 'single' ? (
+          /* 1열: 큰 사진 피드 */
+          <div className="flex flex-col gap-1 px-1">
+            {items.map((item, i) => (
+              <button
+                key={item.id}
+                className="w-full relative overflow-hidden active:opacity-90 rounded-lg"
+                onClick={() => { setSwipeDir(0); setSelectedIndex(i); }}
+              >
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.caption}
+                    className="w-full aspect-[4/5] object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-full aspect-[4/5] flex items-center justify-center rounded-lg"
+                    style={{ background: item.color }}
+                  >
+                    <span className="text-[64px]">{item.emoji}</span>
+                  </div>
+                )}
+                {item.caption && (
+                  <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/50 to-transparent">
+                    <span className="text-white text-xs font-medium">{item.caption}</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        ) : (
+          /* 2열 또는 3열 그리드 */
+          <div
+            className={`grid gap-[2px] px-1 ${
+              layout === 'grid2' ? 'grid-cols-2' : 'grid-cols-3'
+            }`}
+          >
+            {items.map((item, i) => (
+              <button
+                key={item.id}
+                className="aspect-square relative overflow-hidden active:opacity-80"
+                onClick={() => { setSwipeDir(0); setSelectedIndex(i); }}
+              >
+                {item.imageUrl ? (
+                  <img
+                    src={item.imageUrl}
+                    alt={item.caption}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div
+                    className="w-full h-full flex items-center justify-center"
+                    style={{ background: item.color }}
+                  >
+                    <span className={layout === 'grid2' ? 'text-[48px]' : 'text-[32px]'}>{item.emoji}</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         {isEditable && items.length === 0 && (
           <div className="text-center py-16">

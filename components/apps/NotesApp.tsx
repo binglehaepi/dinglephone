@@ -40,15 +40,15 @@ export const NotesApp: React.FC<NotesAppProps> = ({ data, onClose }) => {
   if (selectedNote) {
     const noteIndex = data.apps.notes.findIndex(n => n.title === selectedNote.title && n.updatedAt === selectedNote.updatedAt);
     return (
-      <div className="flex flex-col h-full bg-cream-50 text-ink">
-         <div className="pt-[54px] pb-4 px-6 flex items-center justify-between sticky top-0 bg-cream-50 z-10 border-b border-cream-300">
-          <button onClick={() => setSelectedNote(null)} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+      <div className="flex flex-col h-full bg-cream-100 text-ink">
+         <div className="pt-[54px] pb-2 px-4 flex items-center justify-between sticky top-0 z-10 bg-cream-100/95 backdrop-blur-xl">
+          <button onClick={() => setSelectedNote(null)} className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
             <ChevronLeft size={16} className="text-ink" />
           </button>
           {isEditable && noteIndex >= 0 && (
             <button
               onClick={() => handleDelete(noteIndex)}
-              className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center"
+              className="w-8 h-8 rounded-full bg-red-500/20 backdrop-blur-sm flex items-center justify-center"
             >
               <Trash2 size={14} className="text-red-500" />
             </button>
@@ -67,23 +67,21 @@ export const NotesApp: React.FC<NotesAppProps> = ({ data, onClose }) => {
 
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink">
-      <div className="pt-[54px] px-6 pb-2">
+      <div className="pt-[54px] px-4 pb-2">
          <div className="flex justify-between items-center mb-4">
-             <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+             <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
                 <ChevronLeft size={16} className="text-ink" />
              </button>
-             <h1 className="text-2xl font-bold text-ink">Notes</h1>
              {isEditable ? (
                <button
                  onClick={() => setShowAdd(true)}
-                 className="w-10 h-10 rounded-full flex items-center justify-center shadow-md"
-                 style={{ background: 'var(--accent)', color: 'white' }}
+                 className="w-8 h-8 rounded-full flex items-center justify-center bg-black/10"
                >
-                 <Plus size={18} />
+                 <Plus size={16} className="text-ink" />
                </button>
              ) : (
-               <button className="w-10 h-10 rounded-full bg-dingle text-white flex items-center justify-center shadow-md">
-                   <Edit3 size={18} />
+               <button className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
+                   <Edit3 size={16} className="text-ink" />
                </button>
              )}
          </div>

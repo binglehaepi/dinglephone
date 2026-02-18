@@ -1,9 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
-  ChevronLeft, Check, Lock, ImagePlus, Palette, Type, Sticker, Camera, Trash2,
-  Shield, Zap, Plus, X, LayoutGrid, ArrowUp, ArrowDown, RotateCcw, Home,
-  CalendarDays, Music, FileText, Globe, MapPin, ShoppingBag, Wallet,
-  MessageCircle, Heart, Settings, Store, Search,
+  ChevronLeft, Check, Lock, ImagePlus, Palette, Type, Sticker,
+  Shield, Zap, Plus, X,
 } from 'lucide-react';
 import { AdminPanel } from '../AdminPanel';
 import { ADMIN_PASSWORD } from '../../lib/moderation';
@@ -18,15 +16,9 @@ import {
   WallpaperPreset,
   WallpaperValue,
   CUSTOM_ID,
-  getSavedHomeWallpaper,
 } from '../../lib/wallpaper';
 import { useTheme } from '../../context/ThemeContext';
 import { usePhone } from '../../context/PhoneContext';
-import { AppIconData, HomeItem, IconShape, WidgetFrameType } from '../../types';
-import { ICON_SHAPES, getIconShapeStyle } from '../../lib/iconShapes';
-import { WIDGET_FRAME_LIST } from '../widgets/WidgetRenderer';
-import { HomeGrid } from '../widgets/HomeGrid';
-import { defaultPhone } from '../../data/defaultPhone';
 
 interface SettingsAppProps {
   onClose: () => void;
@@ -34,7 +26,7 @@ interface SettingsAppProps {
   onChangeLockWallpaper: (id: string, wallpaper: WallpaperValue) => void;
 }
 
-type SettingsView = 'main' | 'homeWallpaper' | 'lockWallpaper' | 'marquee' | 'homeEditor' | 'admin';
+type SettingsView = 'main' | 'homeWallpaper' | 'lockWallpaper' | 'marquee' | 'admin';
 
 export const SettingsApp: React.FC<SettingsAppProps> = ({
   onClose,
@@ -44,17 +36,15 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
   const { theme, setThemeById, allThemes } = useTheme();
   const { isEditable, currentPhone, updateCurrentPhone } = usePhone();
   const [view, setView] = useState<SettingsView>('main');
-  const [selectedHome, setSelectedHome] = useState(getSavedHomeId);
-  const [selectedLock, setSelectedLock] = useState(getSavedLockId);
-  const [customHomeThumb, setCustomHomeThumb] = useState<string | null>(getCustomHomeImage);
-  const [customLockThumb, setCustomLockThumb] = useState<string | null>(getCustomLockImage);
+  const phoneId = currentPhone?.id ?? 'default';
+  const [selectedHome, setSelectedHome] = useState(() => getSavedHomeId(phoneId));
+  const [selectedLock, setSelectedLock] = useState(() => getSavedLockId(phoneId));
+  const [customHomeThumb, setCustomHomeThumb] = useState<string | null>(() => getCustomHomeImage(phoneId));
+  const [customLockThumb, setCustomLockThumb] = useState<string | null>(() => getCustomLockImage(phoneId));
   const [toast, setToast] = useState('');
   const [isCompressing, setIsCompressing] = useState(false);
   const [shakingIndex, setShakingIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const iconFileRef = useRef<HTMLInputElement>(null);
-  const [editingIconId, setEditingIconId] = useState<string | null>(null);
-  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [adminPressTimer, setAdminPressTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
@@ -150,7 +140,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
     return (
       <div className="flex flex-col h-full bg-cream-100 text-ink relative">
-        <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-sm z-10">
+        <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-xl z-10">
           <button onClick={() => setView('main')} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
             <ChevronLeft size={16} className="text-ink" />
           </button>
@@ -256,367 +246,12 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
     );
   };
 
-  // ── 앱 아이콘 변경 핸들러 ──
-  const handleIconFileSelected = async (file: File, appId: string) => {
-    if (!currentPhone) return;
-    setIsCompressing(true);
-    try {
-      const dataUrl = await compressImage(file);
-      const updateIcons = (icons: AppIconData[]) =>
-        icons.map(app => app.id === appId ? { ...app, customIconUrl: dataUrl } : app);
-      updateCurrentPhone({
-        homeScreen: {
-          ...currentPhone.homeScreen,
-          appLayout: updateIcons(currentPhone.homeScreen.appLayout),
-          dock: updateIcons(currentPhone.homeScreen.dock),
-        },
-      });
-      showToast('아이콘이 변경되었어요!');
-    } catch {
-      showToast('이미지 처리 중 오류가 발생했어요');
-    }
-    setIsCompressing(false);
-    setEditingIconId(null);
-  };
-
-  const handleChangeShape = (appId: string, shape: IconShape) => {
-    if (!currentPhone) return;
-    const updateShape = (icons: AppIconData[]) =>
-      icons.map(app => app.id === appId ? { ...app, iconShape: shape } : app);
-    updateCurrentPhone({
-      homeScreen: {
-        ...currentPhone.homeScreen,
-        appLayout: updateShape(currentPhone.homeScreen.appLayout),
-        dock: updateShape(currentPhone.homeScreen.dock),
-      },
-    });
-    const shapeNames: Record<string, string> = { square: '네모', circle: '동그라미', heart: '하트', droplet: '물방울', diamond: '다이아몬드' };
-    showToast(`${shapeNames[shape] || shape} 모양으로 변경!`);
-  };
-
-  const handleRemoveIcon = (appId: string) => {
-    if (!currentPhone) return;
-    const removeIcon = (icons: AppIconData[]) =>
-      icons.map(app => app.id === appId ? { ...app, customIconUrl: undefined } : app);
-    updateCurrentPhone({
-      homeScreen: {
-        ...currentPhone.homeScreen,
-        appLayout: removeIcon(currentPhone.homeScreen.appLayout),
-        dock: removeIcon(currentPhone.homeScreen.dock),
-      },
-    });
-    showToast('기본 아이콘으로 복원되었어요');
-  };
-
   // ── 서브 뷰 라우팅 ──
   if (view === 'homeWallpaper') {
     return renderWallpaperPicker('배경화면', homeWallpapers, selectedHome, customHomeThumb, handleSelectHome);
   }
   if (view === 'lockWallpaper') {
     return renderWallpaperPicker('잠금화면', lockWallpapers, selectedLock, customLockThumb, handleSelectLock);
-  }
-
-  // ── 홈 화면 편집 화면 (위젯 + 아이콘 통합) ──
-  if (view === 'homeEditor' && currentPhone) {
-    const items = currentPhone.homeScreen.appLayout as HomeItem[];
-    const dockItems = currentPhone.homeScreen.dock;
-    const selectedItem = selectedItemId ? items.find(i => i.id === selectedItemId) : null;
-
-    // 홈 배경화면 스타일 (라이브 프리뷰용)
-    const homeWP = getSavedHomeWallpaper();
-    const wpStyle: React.CSSProperties = homeWP.type === 'image'
-      ? { backgroundImage: `url(${homeWP.value})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-      : { background: homeWP.value || theme.wallpaper };
-
-    // ── 핸들러 ──
-    const handleSetToIcon = (itemId: string) => {
-      const newLayout = items.map((item) => {
-        if (item.id !== itemId) return item;
-        const { type: _t, widgetFrame: _f, widgetColor: _c, widgetLabel: _l, widgetSpan: _s, appId: _a, widgetShowIcon: _si, ...rest } = item;
-        return rest as HomeItem;
-      });
-      updateCurrentPhone({ homeScreen: { ...currentPhone.homeScreen, appLayout: newLayout } });
-    };
-
-    const handleSetToWidget = (itemId: string, frameType: WidgetFrameType) => {
-      const frameInfo = WIDGET_FRAME_LIST.find((f) => f.type === frameType);
-      const newLayout = items.map((item) => {
-        if (item.id !== itemId) return item;
-        if (item.type === 'widget') {
-          // 이미 위젯이면 프레임만 변경
-          return { ...item, widgetFrame: frameType, widgetSpan: frameInfo?.defaultSpan || { cols: 2, rows: 2 } };
-        }
-        // 아이콘 → 위젯
-        return {
-          ...item,
-          type: 'widget' as const,
-          appId: item.id,
-          widgetFrame: frameType,
-          widgetSpan: frameInfo?.defaultSpan || { cols: 2, rows: 2 },
-        };
-      });
-      updateCurrentPhone({ homeScreen: { ...currentPhone.homeScreen, appLayout: newLayout } });
-    };
-
-    const handleMoveItem = (itemId: string, direction: 'up' | 'down') => {
-      const index = items.findIndex(i => i.id === itemId);
-      if (index < 0) return;
-      const newIndex = direction === 'up' ? index - 1 : index + 1;
-      if (newIndex < 0 || newIndex >= items.length) return;
-      const newLayout = [...items];
-      [newLayout[index], newLayout[newIndex]] = [newLayout[newIndex], newLayout[index]];
-      updateCurrentPhone({ homeScreen: { ...currentPhone.homeScreen, appLayout: newLayout } });
-    };
-
-    const handleResetLayout = () => {
-      if (currentPhone.isDefault) {
-        updateCurrentPhone({ homeScreen: defaultPhone.homeScreen });
-      } else {
-        // 비기본 폰은 기본 아이콘 레이아웃으로 리셋
-        const basicLayout: HomeItem[] = [
-          { id: 'photos', icon: '📸', name: '사진첩', iconBg: '#FFF3EB' },
-          { id: 'calendar', icon: '📅', name: '캘린더', iconBg: '#F3EBFF' },
-          { id: 'music', icon: '🎵', name: '음악', iconBg: '#EBFFF3' },
-          { id: 'notes', icon: '📝', name: '메모', iconBg: '#FFFCEB' },
-          { id: 'social', icon: '🌐', name: 'SNS', iconBg: '#FFEBF3' },
-          { id: 'map', icon: '📍', name: '지도', iconBg: '#EBF3FF' },
-          { id: 'wishlist', icon: '🛍️', name: '위시', iconBg: '#FFF0EB' },
-          { id: 'expenses', icon: '💰', name: '가계부', iconBg: '#F0FFEB' },
-          { id: 'messages', icon: '💬', name: '메시지', iconBg: '#FFEBEB' },
-          { id: 'guestbook', icon: '💌', name: '방명록', iconBg: '#FFE8E8' },
-          { id: 'settings', icon: '⚙️', name: '설정', iconBg: '#F2F0ED' },
-          { id: 'appstore', icon: '🏪', name: '스토어', iconBg: '#EBF0FF' },
-        ];
-        updateCurrentPhone({
-          homeScreen: { ...currentPhone.homeScreen, appLayout: basicLayout },
-        });
-      }
-      setSelectedItemId(null);
-      showToast('홈 화면이 초기화되었어요!');
-    };
-
-    // 독 아이콘 컴포넌트 매핑
-    const iconComponentMap: Record<string, React.ComponentType<any>> = {
-      photos: Camera, calendar: CalendarDays, music: Music,
-      notes: FileText, social: Globe, map: MapPin,
-      wishlist: ShoppingBag, expenses: Wallet,
-      messages: MessageCircle, guestbook: Heart,
-      settings: Settings, appstore: Store, search: Search,
-    };
-
-    return (
-      <div className="flex flex-col h-full bg-cream-100 text-ink relative">
-        {/* 상단 헤더 */}
-        <div className="pt-[54px] pb-2 px-6 flex items-center gap-2 bg-cream-100/95 backdrop-blur-sm z-10">
-          <button onClick={() => { setView('main'); setSelectedItemId(null); }} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
-            <ChevronLeft size={16} className="text-ink" />
-          </button>
-          <span className="text-base font-semibold text-ink flex-1">홈 화면 편집</span>
-          <button onClick={handleResetLayout} className="px-3 py-1.5 rounded-lg bg-cream-200 text-[10px] font-bold text-ink-secondary flex items-center gap-1 active:scale-95 transition-transform">
-            <RotateCcw size={10} />
-            초기화
-          </button>
-        </div>
-
-        <input
-          ref={iconFileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file && editingIconId) handleIconFileSelected(file, editingIconId);
-            e.target.value = '';
-          }}
-        />
-
-        {/* 실제 비율 홈 화면 미리보기 — 아이템 탭으로 선택 */}
-        <div className="flex-1 min-h-0 overflow-auto no-scrollbar" style={wpStyle}>
-          <div className="pt-2 pb-4">
-            <HomeGrid
-              items={items}
-              phone={currentPhone}
-              onAppOpen={() => {}}
-              themeObj={theme}
-              selectedItemId={selectedItemId}
-              onSelectItem={(id) => setSelectedItemId(prev => prev === id ? null : id)}
-            />
-          </div>
-        </div>
-
-        {/* 하단 독 + 편집 패널 영역 */}
-        <div className="shrink-0 bg-cream-50/95 backdrop-blur-md border-t border-cream-300">
-          {!selectedItem ? (
-            /* 독 영역 (선택 없을 때) */
-            <div className="px-4 py-3">
-              <div
-                className="rounded-[20px] px-3 py-2.5"
-                style={{
-                  background: theme.dock.bg,
-                  border: theme.dock.border,
-                  boxShadow: theme.shadow,
-                }}
-              >
-                <div className="grid grid-cols-5 gap-2">
-                  {dockItems.slice(0, 2).map((app) => {
-                    const DockIcon = iconComponentMap[app.id];
-                    const themeIcon = theme.iconColors[app.id];
-                    const bg = themeIcon?.bg ?? app.iconBg;
-                    const color = themeIcon?.color ?? 'var(--text-primary)';
-                    return (
-                      <div key={app.id} className="flex flex-col items-center justify-center">
-                        <div
-                          className="w-10 h-10 flex items-center justify-center overflow-hidden"
-                          style={{ background: bg, border: `1px solid ${bg}`, ...getIconShapeStyle(app.iconShape), borderRadius: app.iconShape ? undefined : '12px' }}
-                        >
-                          {app.customIconUrl ? (
-                            <img src={app.customIconUrl} alt={app.name} className="w-full h-full object-cover" draggable={false} />
-                          ) : DockIcon ? (
-                            <DockIcon size={18} color={color} strokeWidth={1.8} />
-                          ) : (
-                            <span className="text-[16px]">{app.icon}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div className="flex flex-col items-center justify-center">
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white border border-white/80" style={{ boxShadow: '0 1px 4px rgba(61,47,47,0.08)' }}>
-                      <Home size={18} color="var(--text-secondary)" strokeWidth={1.8} />
-                    </div>
-                  </div>
-                  {dockItems.slice(2, 4).map((app) => {
-                    const DockIcon = iconComponentMap[app.id];
-                    const themeIcon = theme.iconColors[app.id];
-                    const bg = themeIcon?.bg ?? app.iconBg;
-                    const color = themeIcon?.color ?? 'var(--text-primary)';
-                    return (
-                      <div key={app.id} className="flex flex-col items-center justify-center">
-                        <div
-                          className="w-10 h-10 flex items-center justify-center overflow-hidden"
-                          style={{ background: bg, border: `1px solid ${bg}`, ...getIconShapeStyle(app.iconShape), borderRadius: app.iconShape ? undefined : '12px' }}
-                        >
-                          {app.customIconUrl ? (
-                            <img src={app.customIconUrl} alt={app.name} className="w-full h-full object-cover" draggable={false} />
-                          ) : DockIcon ? (
-                            <DockIcon size={18} color={color} strokeWidth={1.8} />
-                          ) : (
-                            <span className="text-[16px]">{app.icon}</span>
-                          )}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="text-center mt-2 text-[10px] text-ink-tertiary">
-                편집할 아이템을 위 화면에서 탭하세요
-              </div>
-            </div>
-          ) : (
-            /* 편집 패널 (선택 있을 때 독 대체) */
-            <div className="px-3 py-2 overflow-y-auto" style={{ maxHeight: 240 }}>
-              <div className="space-y-2.5">
-                {/* 선택된 아이템 정보 + 순서 이동 */}
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden shrink-0"
-                    style={{ background: theme.iconColors[selectedItem.id]?.bg ?? selectedItem.iconBg }}>
-                    {selectedItem.customIconUrl
-                      ? <img src={selectedItem.customIconUrl} alt={selectedItem.name} className="w-full h-full object-cover" />
-                      : <span className="text-[14px]">{selectedItem.icon}</span>}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold text-ink">{selectedItem.name}</div>
-                    <div className="text-[9px] text-ink-tertiary">
-                      {selectedItem.type === 'widget'
-                        ? `위젯 · ${WIDGET_FRAME_LIST.find(f => f.type === selectedItem.widgetFrame)?.name || ''}`
-                        : '아이콘'}
-                    </div>
-                  </div>
-                  <div className="flex gap-1 shrink-0">
-                    <button onClick={() => handleMoveItem(selectedItem.id, 'up')}
-                      className="w-6 h-6 rounded-md bg-cream-200 flex items-center justify-center active:scale-90 transition-transform">
-                      <ArrowUp size={12} className="text-ink-secondary" />
-                    </button>
-                    <button onClick={() => handleMoveItem(selectedItem.id, 'down')}
-                      className="w-6 h-6 rounded-md bg-cream-200 flex items-center justify-center active:scale-90 transition-transform">
-                      <ArrowDown size={12} className="text-ink-secondary" />
-                    </button>
-                  </div>
-                  <button onClick={() => setSelectedItemId(null)}
-                    className="w-6 h-6 rounded-md bg-cream-200 flex items-center justify-center active:scale-90 transition-transform shrink-0">
-                    <X size={12} className="text-ink-secondary" />
-                  </button>
-                </div>
-
-                {/* 프레임 선택 (없음 + 디바이스 프레임) */}
-                <div>
-                  <span className="text-[9px] text-ink-tertiary mb-1 block">프레임</span>
-                  <div className="flex gap-1 overflow-x-auto no-scrollbar pb-1">
-                    {/* 없음 (아이콘 모드) */}
-                    <button
-                      onClick={() => handleSetToIcon(selectedItem.id)}
-                      className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg shrink-0 transition-all ${
-                        selectedItem.type !== 'widget' ? 'bg-dingle/15 ring-1 ring-dingle/30' : 'bg-cream-200'
-                      }`}>
-                      <span className="text-[14px]">📱</span>
-                      <span className="text-[7px] font-medium text-ink-tertiary whitespace-nowrap">없음</span>
-                    </button>
-                    {WIDGET_FRAME_LIST.map((frame) => (
-                      <button key={frame.type}
-                        onClick={() => handleSetToWidget(selectedItem.id, frame.type)}
-                        className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg shrink-0 transition-all ${
-                          selectedItem.type === 'widget' && selectedItem.widgetFrame === frame.type
-                            ? 'bg-dingle/15 ring-1 ring-dingle/30' : 'bg-cream-200'
-                        }`}>
-                        <span className="text-[14px]">{frame.emoji}</span>
-                        <span className="text-[7px] font-medium text-ink-tertiary whitespace-nowrap">{frame.name}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* 아이콘 모드 전용: 아이콘 모양 + 사진 변경 */}
-                {selectedItem.type !== 'widget' && (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[9px] text-ink-tertiary shrink-0">모양</span>
-                    {ICON_SHAPES.map((shape) => {
-                      const isActive = (selectedItem.iconShape || 'square') === shape.id;
-                      return (
-                        <button key={shape.id} onClick={() => handleChangeShape(selectedItem.id, shape.id)}
-                          className={`w-7 h-7 rounded-md flex items-center justify-center text-[12px] transition-all ${isActive ? 'bg-dingle/15 ring-1 ring-dingle/30' : 'bg-cream-200'}`}>
-                          {shape.emoji}
-                        </button>
-                      );
-                    })}
-                    <div className="flex-1" />
-                    <button onClick={() => { setEditingIconId(selectedItem.id); setTimeout(() => iconFileRef.current?.click(), 50); }}
-                      disabled={isCompressing}
-                      className="w-7 h-7 rounded-full flex items-center justify-center"
-                      style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}>
-                      <Camera size={11} />
-                    </button>
-                    {selectedItem.customIconUrl && (
-                      <button onClick={() => handleRemoveIcon(selectedItem.id)}
-                        className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center">
-                        <Trash2 size={11} className="text-red-400" />
-                      </button>
-                    )}
-                  </div>
-                )}
-
-              </div>
-            </div>
-          )}
-        </div>
-
-        {toast && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-ink/80 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg whitespace-nowrap z-50">
-            {toast}
-          </div>
-        )}
-      </div>
-    );
   }
 
   // ── 관리자 패널 ──
@@ -658,7 +293,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
     return (
       <div className="flex flex-col h-full bg-cream-100 text-ink relative">
-        <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-sm z-10">
+        <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-xl z-10">
           <button onClick={() => setView('main')} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
             <ChevronLeft size={16} className="text-ink" />
           </button>
@@ -750,7 +385,7 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
 
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink relative">
-      <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-sm z-10">
+      <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-xl z-10">
         <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
           <ChevronLeft size={16} className="text-ink" />
         </button>
@@ -908,40 +543,6 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             </button>
           </div>
         </div>
-
-        {/* ── 홈 화면 편집 (아이콘 + 위젯 통합) ── */}
-        {isEditable && (
-          <div>
-            <div className="flex items-center gap-2 mb-3">
-              <LayoutGrid size={16} className="text-dingle" />
-              <span className="text-sm font-bold text-ink">홈 화면</span>
-            </div>
-            <button
-              onClick={() => setView('homeEditor')}
-              className="w-full bg-cream-50 rounded-dingle p-4 shadow-card border border-cream-300 active:scale-[0.97] transition-transform flex items-center gap-3"
-            >
-              <div className="flex -space-x-2">
-                {(currentPhone?.homeScreen.appLayout || []).slice(0, 5).map((app) => (
-                  <div
-                    key={app.id}
-                    className="w-8 h-8 rounded-lg overflow-hidden border-2 border-cream-50"
-                    style={{ background: theme.iconColors[app.id]?.bg ?? app.iconBg }}
-                  >
-                    {app.customIconUrl ? (
-                      <img src={app.customIconUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-[14px]">{app.icon}</div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="flex-1 text-left">
-                <div className="text-xs font-bold text-ink">홈 화면 편집</div>
-                <div className="text-[10px] text-ink-tertiary">아이콘, 위젯, 배치를 한 번에!</div>
-              </div>
-            </button>
-          </div>
-        )}
 
         {/* ── 전광판 문구 ── */}
         {isEditable && (

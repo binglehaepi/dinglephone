@@ -137,9 +137,9 @@ export interface AppIconData {
   iconShape?: IconShape;
 }
 
-// 홈 화면 아이템 = 아이콘 또는 위젯
+// 홈 화면 아이템 = 아이콘 또는 위젯 또는 빈 공간
 export interface HomeItem extends AppIconData {
-  type?: 'icon' | 'widget';        // 기본값 'icon'
+  type?: 'icon' | 'widget' | 'spacer';  // 기본값 'icon', 'spacer'=빈 그리드 셀
   appId?: string;                   // 위젯이 연결된 앱 (type='widget'일 때)
   widgetFrame?: WidgetFrameType;
   widgetColor?: string;

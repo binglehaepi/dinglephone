@@ -25,11 +25,11 @@ export const lockWallpapers: WallpaperPreset[] = [
   { id: 'rose', name: '로즈', emoji: '🌹', gradient: 'linear-gradient(180deg, #FFEBF3 0%, #FFD6DE 50%, #FFEBF3 100%)' },
 ];
 
-// ── localStorage 키 ──
-const STORAGE_KEY_HOME = 'dingle-wallpaper-home';
-const STORAGE_KEY_LOCK = 'dingle-wallpaper-lock';
-const STORAGE_KEY_HOME_IMAGE = 'dingle-wallpaper-home-image';
-const STORAGE_KEY_LOCK_IMAGE = 'dingle-wallpaper-lock-image';
+// ── localStorage 키 (폰별 분리) ──
+function keyHome(phoneId: string) { return `dingle-wallpaper-home-${phoneId}`; }
+function keyLock(phoneId: string) { return `dingle-wallpaper-lock-${phoneId}`; }
+function keyHomeImage(phoneId: string) { return `dingle-wallpaper-home-image-${phoneId}`; }
+function keyLockImage(phoneId: string) { return `dingle-wallpaper-lock-image-${phoneId}`; }
 
 // 커스텀 이미지 사용 시 id를 'custom'으로 저장
 export const CUSTOM_ID = 'custom';
@@ -77,30 +77,30 @@ export function compressImage(file: File): Promise<string> {
 }
 
 // ── 커스텀 이미지 저장/불러오기 ──
-export function saveCustomHomeImage(dataUrl: string): void {
-  localStorage.setItem(STORAGE_KEY_HOME, CUSTOM_ID);
-  localStorage.setItem(STORAGE_KEY_HOME_IMAGE, dataUrl);
+export function saveCustomHomeImage(phoneId: string, dataUrl: string): void {
+  localStorage.setItem(keyHome(phoneId), CUSTOM_ID);
+  localStorage.setItem(keyHomeImage(phoneId), dataUrl);
 }
 
-export function saveCustomLockImage(dataUrl: string): void {
-  localStorage.setItem(STORAGE_KEY_LOCK, CUSTOM_ID);
-  localStorage.setItem(STORAGE_KEY_LOCK_IMAGE, dataUrl);
+export function saveCustomLockImage(phoneId: string, dataUrl: string): void {
+  localStorage.setItem(keyLock(phoneId), CUSTOM_ID);
+  localStorage.setItem(keyLockImage(phoneId), dataUrl);
 }
 
-export function getCustomHomeImage(): string | null {
-  return localStorage.getItem(STORAGE_KEY_HOME_IMAGE);
+export function getCustomHomeImage(phoneId: string): string | null {
+  return localStorage.getItem(keyHomeImage(phoneId));
 }
 
-export function getCustomLockImage(): string | null {
-  return localStorage.getItem(STORAGE_KEY_LOCK_IMAGE);
+export function getCustomLockImage(phoneId: string): string | null {
+  return localStorage.getItem(keyLockImage(phoneId));
 }
 
-function clearCustomHomeImage(): void {
-  localStorage.removeItem(STORAGE_KEY_HOME_IMAGE);
+function clearCustomHomeImage(phoneId: string): void {
+  localStorage.removeItem(keyHomeImage(phoneId));
 }
 
-function clearCustomLockImage(): void {
-  localStorage.removeItem(STORAGE_KEY_LOCK_IMAGE);
+function clearCustomLockImage(phoneId: string): void {
+  localStorage.removeItem(keyLockImage(phoneId));
 }
 
 // ── 배경화면 정보 타입 ──
@@ -110,39 +110,39 @@ export interface WallpaperValue {
 }
 
 // ── 프리셋 ID로 저장 (커스텀 이미지 초기화) ──
-export function saveHomeWallpaper(id: string): void {
-  localStorage.setItem(STORAGE_KEY_HOME, id);
-  if (id !== CUSTOM_ID) clearCustomHomeImage();
+export function saveHomeWallpaper(phoneId: string, id: string): void {
+  localStorage.setItem(keyHome(phoneId), id);
+  if (id !== CUSTOM_ID) clearCustomHomeImage(phoneId);
 }
 
-export function saveLockWallpaper(id: string): void {
-  localStorage.setItem(STORAGE_KEY_LOCK, id);
-  if (id !== CUSTOM_ID) clearCustomLockImage();
+export function saveLockWallpaper(phoneId: string, id: string): void {
+  localStorage.setItem(keyLock(phoneId), id);
+  if (id !== CUSTOM_ID) clearCustomLockImage(phoneId);
 }
 
 // ── 저장된 값 불러오기 ──
-export function getSavedHomeId(): string {
-  return localStorage.getItem(STORAGE_KEY_HOME) ?? 'cream';
+export function getSavedHomeId(phoneId: string): string {
+  return localStorage.getItem(keyHome(phoneId)) ?? 'cream';
 }
 
-export function getSavedLockId(): string {
-  return localStorage.getItem(STORAGE_KEY_LOCK) ?? 'cream';
+export function getSavedLockId(phoneId: string): string {
+  return localStorage.getItem(keyLock(phoneId)) ?? 'cream';
 }
 
-export function getSavedHomeWallpaper(): WallpaperValue {
-  const savedId = getSavedHomeId();
+export function getSavedHomeWallpaper(phoneId: string): WallpaperValue {
+  const savedId = getSavedHomeId(phoneId);
   if (savedId === CUSTOM_ID) {
-    const img = getCustomHomeImage();
+    const img = getCustomHomeImage(phoneId);
     if (img) return { type: 'image', value: img };
   }
   const found = homeWallpapers.find((w) => w.id === savedId);
   return { type: 'gradient', value: found ? found.gradient : homeWallpapers[0].gradient };
 }
 
-export function getSavedLockWallpaper(): WallpaperValue {
-  const savedId = getSavedLockId();
+export function getSavedLockWallpaper(phoneId: string): WallpaperValue {
+  const savedId = getSavedLockId(phoneId);
   if (savedId === CUSTOM_ID) {
-    const img = getCustomLockImage();
+    const img = getCustomLockImage(phoneId);
     if (img) return { type: 'image', value: img };
   }
   const found = lockWallpapers.find((w) => w.id === savedId);

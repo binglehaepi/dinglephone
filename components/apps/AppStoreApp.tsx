@@ -93,7 +93,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({ data, onClose }) => {
 
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink">
-       <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-sm z-10 border-b border-cream-300">
+       <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-cream-100/95 backdrop-blur-xl z-10 border-b border-cream-300">
         <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
           <ChevronLeft size={16} className="text-ink" />
         </button>

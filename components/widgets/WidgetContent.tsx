@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { PhoneData } from '../../types';
 
 interface WidgetContentProps {
@@ -36,24 +36,68 @@ export const WidgetContent: React.FC<WidgetContentProps> = ({ appId, phone, phot
   }
 };
 
-// ── 사진첩: 한 장의 사진만 표시 ──
+// ── 사진첩: 자동 순환 (A/B 슬롯 크로스페이드) ──
 function PhotosPreview({ items, index = 0 }: { items: PhoneData['apps']['photos']['items']; index?: number }) {
-  const item = items[index % Math.max(items.length, 1)];
-  if (!item) {
+  // A/B 두 슬롯을 항상 렌더, activeSlot으로 교대
+  const [slotA, setSlotA] = useState(index % Math.max(items.length, 1));
+  const [slotB, setSlotB] = useState((index + 1) % Math.max(items.length, 1));
+  const [activeSlot, setActiveSlot] = useState<'A' | 'B'>('A');
+
+  useEffect(() => {
+    if (items.length <= 1) return;
+    const interval = setInterval(() => {
+      if (activeSlot === 'A') {
+        // B에 다음 사진 세팅 후 B를 활성화
+        setSlotB((slotA + 1) % items.length);
+        setActiveSlot('B');
+      } else {
+        // A에 다음 사진 세팅 후 A를 활성화
+        setSlotA((slotB + 1) % items.length);
+        setActiveSlot('A');
+      }
+    }, 4000);
+    return () => clearInterval(interval);
+  }, [items.length, activeSlot, slotA, slotB]);
+
+  if (items.length === 0) {
     return <div className="flex items-center justify-center h-full text-lg opacity-30">📸</div>;
   }
+
+  const renderSlot = (idx: number) => {
+    const item = items[idx % items.length];
+    if (!item) return null;
+    if (item.imageUrl) {
+      return <img src={item.imageUrl} className="absolute inset-0 w-full h-full object-cover" alt="" draggable={false} />;
+    }
+    return (
+      <div className="absolute inset-0 w-full h-full flex items-center justify-center text-2xl" style={{ background: item.color || 'var(--bg-sunken)' }}>
+        {item.emoji}
+      </div>
+    );
+  };
+
   return (
-    <div className="w-full h-full">
-      {item.imageUrl ? (
-        <img src={item.imageUrl} className="w-full h-full object-cover" alt="" draggable={false} />
-      ) : (
-        <div
-          className="w-full h-full flex items-center justify-center text-2xl"
-          style={{ background: item.color || 'var(--bg-sunken)' }}
-        >
-          {item.emoji}
-        </div>
-      )}
+    <div className="w-full h-full relative overflow-hidden">
+      {/* 슬롯 A */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeSlot === 'A' ? 1 : 0,
+          transition: 'opacity 1.2s ease-in-out',
+        }}
+      >
+        {renderSlot(slotA)}
+      </div>
+      {/* 슬롯 B */}
+      <div
+        className="absolute inset-0"
+        style={{
+          opacity: activeSlot === 'B' ? 1 : 0,
+          transition: 'opacity 1.2s ease-in-out',
+        }}
+      >
+        {renderSlot(slotB)}
+      </div>
     </div>
   );
 }

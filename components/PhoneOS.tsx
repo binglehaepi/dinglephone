@@ -98,13 +98,13 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ phone }) => {
   const [screen, setScreen] = useState<Screen>('LOCK');
   const [showSearch, setShowSearch] = useState(false);
 
-  const [homeWP, setHomeWP] = useState<WallpaperValue>(getSavedHomeWallpaper);
-  const [lockWP, setLockWP] = useState<WallpaperValue>(getSavedLockWallpaper);
+  const [homeWP, setHomeWP] = useState<WallpaperValue>(() => getSavedHomeWallpaper(phone.id));
+  const [lockWP, setLockWP] = useState<WallpaperValue>(() => getSavedLockWallpaper(phone.id));
 
   // When theme changes, update wallpapers to theme defaults (unless user has a custom image)
   useEffect(() => {
-    const savedHome = getSavedHomeWallpaper();
-    const savedLock = getSavedLockWallpaper();
+    const savedHome = getSavedHomeWallpaper(phone.id);
+    const savedLock = getSavedLockWallpaper(phone.id);
     if (savedHome.type === 'gradient') {
       const newWP: WallpaperValue = { type: 'gradient', value: theme.wallpaper };
       setHomeWP(newWP);
@@ -113,11 +113,13 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ phone }) => {
       const newWP: WallpaperValue = { type: 'gradient', value: theme.lockWallpaper };
       setLockWP(newWP);
     }
-  }, [theme]);
+  }, [theme, phone.id]);
 
-  // Reset screen when phone changes
+  // Reset screen & reload wallpapers when phone changes
   useEffect(() => {
     setScreen('LOCK');
+    setHomeWP(getSavedHomeWallpaper(phone.id));
+    setLockWP(getSavedLockWallpaper(phone.id));
   }, [phone.id]);
 
   // Convert to legacy format for app components
@@ -137,21 +139,21 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ phone }) => {
 
   const handleChangeHomeWallpaper = useCallback((id: string, wp: WallpaperValue) => {
     if (id === CUSTOM_ID && wp.type === 'image') {
-      saveCustomHomeImage(wp.value);
+      saveCustomHomeImage(phone.id, wp.value);
     } else {
-      saveHomeWallpaper(id);
+      saveHomeWallpaper(phone.id, id);
     }
     setHomeWP(wp);
-  }, []);
+  }, [phone.id]);
 
   const handleChangeLockWallpaper = useCallback((id: string, wp: WallpaperValue) => {
     if (id === CUSTOM_ID && wp.type === 'image') {
-      saveCustomLockImage(wp.value);
+      saveCustomLockImage(phone.id, wp.value);
     } else {
-      saveLockWallpaper(id);
+      saveLockWallpaper(phone.id, id);
     }
     setLockWP(wp);
-  }, []);
+  }, [phone.id]);
 
   const renderApp = () => {
     const commonProps = { data, onClose: closeApp };
@@ -185,14 +187,9 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ phone }) => {
 
   return (
     <div className="relative w-full h-full overflow-hidden bg-cream-100 text-ink font-sans select-none">
-      {/* Background Wallpaper */}
-      <motion.div
+      {/* Background Wallpaper — 항상 고정 */}
+      <div
         className="absolute inset-0 z-0"
-        animate={{
-          scale: isApp ? 0.92 : 1,
-          borderRadius: isApp ? '32px' : '0px',
-        }}
-        transition={{ duration: 0.25, ease: dingleEase as unknown as number[] }}
         style={wallpaperToStyle(homeWP)}
       />
 
@@ -200,8 +197,6 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ phone }) => {
       <div className="absolute top-0 w-full z-50">
         <StatusBar />
       </div>
-
-      {/* Home button moved to dock in HomeScreen */}
 
       {/* Screen Container */}
       <div className="relative z-10 w-full h-full">
@@ -234,32 +229,34 @@ export const PhoneOS: React.FC<PhoneOSProps> = ({ phone }) => {
           )}
         </AnimatePresence>
 
-        {/* Home Screen Layer */}
-        <AnimatePresence>
-          {isHome && (
-            <motion.div
-              key="home"
-              className="absolute inset-0 pt-[44px] pb-[34px]"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              transition={{ duration: 0.2, ease: dingleEase as unknown as number[] }}
-            >
-              <HomeScreen data={data} phone={phone} onOpenApp={openApp} />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Home Screen Layer — 항상 마운트 (스크롤 위치 보존) */}
+        {!isLock && (
+          <div
+            className="absolute inset-0 pt-[44px] pb-[34px]"
+            style={{
+              visibility: isHome ? 'visible' : 'hidden',
+              pointerEvents: isHome ? 'auto' : 'none',
+            }}
+          >
+            <HomeScreen data={data} phone={phone} onOpenApp={openApp} />
+          </div>
+        )}
 
-        {/* App Layer */}
+        {/* App Layer — 아래에서 톡 튀어오르는 전환 */}
         <AnimatePresence>
           {isApp && (
             <motion.div
               key="app"
-              className="absolute inset-0 bg-cream-100 z-20 shadow-elevated overflow-hidden"
-              initial={{ opacity: 0, scale: 0.85, borderRadius: '24px' }}
-              animate={{ opacity: 1, scale: 1, borderRadius: '0px' }}
-              exit={{ opacity: 0, scale: 0.85, borderRadius: '24px' }}
-              transition={{ duration: 0.25, ease: dingleEase as unknown as number[] }}
+              className="absolute inset-0 z-20 overflow-hidden"
+              initial={{ opacity: 0, y: '12%', scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: '8%', scale: 0.97 }}
+              transition={{
+                type: 'spring',
+                damping: 28,
+                stiffness: 320,
+                mass: 0.8,
+              }}
             >
               {renderApp()}
             </motion.div>

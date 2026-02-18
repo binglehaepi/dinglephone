@@ -77,7 +77,7 @@ export const GuestbookApp: React.FC<GuestbookAppProps> = ({ data, onClose }) => 
   return (
     <div className="flex flex-col h-full bg-cream-200 text-ink relative">
       {/* Chat Header */}
-      <div className="pt-[54px] pb-3 px-4 flex items-center gap-3 bg-cream-50/90 backdrop-blur-md sticky top-0 z-20 shadow-card border-b border-cream-300">
+      <div className="pt-[54px] pb-3 px-4 flex items-center gap-3 bg-cream-200/95 backdrop-blur-xl sticky top-0 z-20 shadow-card border-b border-cream-300">
         <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
           <ChevronLeft size={16} className="text-ink" />
         </button>
@@ -95,7 +95,7 @@ export const GuestbookApp: React.FC<GuestbookAppProps> = ({ data, onClose }) => 
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 bg-cream-100 pb-20">
+      <div className="flex-1 overflow-y-auto no-scrollbar p-4 space-y-4 pb-20">
          {/* 고정 메시지 */}
          {pinnedEntry && (
            <div className="bg-dingle-light/60 border border-dingle/15 rounded-dingle p-4 mb-2 relative">

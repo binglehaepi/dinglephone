@@ -84,20 +84,16 @@ export const CalendarApp: React.FC<CalendarAppProps> = ({ data, onClose }) => {
 
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink">
-      <div className="pt-[54px] pb-4 px-6 flex items-center justify-between sticky top-0 bg-cream-100/90 backdrop-blur-sm z-10">
-        <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+      <div className="pt-[54px] pb-2 px-4 flex items-center justify-between sticky top-0 z-10 bg-cream-100/95 backdrop-blur-xl">
+        <button onClick={onClose} className="w-8 h-8 rounded-full bg-black/10 flex items-center justify-center">
           <ChevronLeft size={16} className="text-ink" />
         </button>
-        <span className="text-xl font-bold font-display text-ink">
-          {displayMonth === 1 ? 'January' : displayMonth === 2 ? 'February' : 'March'} {displayYear}
-        </span>
         {isEditable ? (
           <button
             onClick={() => setShowAdd(true)}
-            className="w-8 h-8 rounded-full flex items-center justify-center"
-            style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+            className="w-8 h-8 rounded-full flex items-center justify-center bg-black/10"
           >
-            <Plus size={16} />
+            <Plus size={16} className="text-ink" />
           </button>
         ) : (
           <div className="w-8" />

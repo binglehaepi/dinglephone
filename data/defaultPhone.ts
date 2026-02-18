@@ -283,7 +283,7 @@ export const defaultPhone: PhoneData = {
     appLayout: [
       // 사진첩 위젯 (다마고치 프레임) — 2x2
       { id: 'w-photos', icon: '📸', name: '사진첩', iconBg: '#FFF3EB', customIconUrl: '/coconut.png', type: 'widget', appId: 'photos', widgetFrame: 'tamagotchi', widgetSpan: { cols: 2, rows: 2 } },
-      // 기본 아이콘
+      // 기본 아이콘 (독에 있는 설정/스토어/메시지/방명록 제외)
       { id: 'calendar', icon: '📅', name: '캘린더', badge: 3, iconBg: '#F3EBFF' },
       { id: 'music', icon: '🎵', name: '음악', iconBg: '#EBFFF3' },
       { id: 'notes', icon: '📝', name: '메모', iconBg: '#FFFCEB' },
@@ -291,16 +291,12 @@ export const defaultPhone: PhoneData = {
       { id: 'map', icon: '📍', name: '지도', iconBg: '#EBF3FF' },
       { id: 'wishlist', icon: '🛍️', name: '위시', iconBg: '#FFF0EB', customIconUrl: '/cup.webp' },
       { id: 'expenses', icon: '💰', name: '가계부', iconBg: '#F0FFEB' },
-      { id: 'messages', icon: '💬', name: '메시지', badge: 2, iconBg: '#FFEBEB' },
-      { id: 'guestbook', icon: '💌', name: '방명록', iconBg: '#FFE8E8' },
-      { id: 'settings', icon: '⚙️', name: '설정', iconBg: '#F2F0ED' },
-      { id: 'appstore', icon: '🏪', name: '스토어', iconBg: '#EBF0FF' },
     ],
     dock: [
-      { id: 'photos', icon: '📸', name: '사진첩', iconBg: '#FFF3EB', customIconUrl: '/coconut.png' },
-      { id: 'music', icon: '🎵', name: '음악', iconBg: '#EBFFF3' },
-      { id: 'guestbook', icon: '💌', name: '방명록', iconBg: '#FFE8E8' },
+      { id: 'settings', icon: '⚙️', name: '설정', iconBg: '#F2F0ED' },
       { id: 'appstore', icon: '🏪', name: '스토어', iconBg: '#EBF0FF' },
+      { id: 'messages', icon: '💬', name: '메시지', iconBg: '#FFEBEB' },
+      { id: 'guestbook', icon: '💌', name: '방명록', iconBg: '#FFE8E8' },
     ],
   },
 };

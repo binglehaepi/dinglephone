@@ -84,7 +84,7 @@ export const MessagesApp: React.FC<MessagesAppProps> = ({ data, onClose }) => {
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink">
       {/* Header */}
-      <div className="pt-[54px] pb-2 px-6 flex items-center justify-between sticky top-0 bg-cream-100/95 backdrop-blur-sm z-10">
+      <div className="pt-[54px] pb-2 px-6 flex items-center justify-between sticky top-0 bg-cream-100/95 backdrop-blur-xl z-10">
         <div className="flex items-center gap-2">
           <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
             <ChevronLeft size={16} className="text-ink" />
