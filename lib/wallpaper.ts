@@ -32,19 +32,99 @@ export const lockWallpapers: WallpaperPreset[] = [
 // ── localStorage 키 ──
 const STORAGE_KEY_HOME = 'dingle-wallpaper-home';
 const STORAGE_KEY_LOCK = 'dingle-wallpaper-lock';
+const STORAGE_KEY_HOME_IMAGE = 'dingle-wallpaper-home-image';
+const STORAGE_KEY_LOCK_IMAGE = 'dingle-wallpaper-lock-image';
 
-export function getSavedHomeWallpaper(): string {
-  const savedId = localStorage.getItem(STORAGE_KEY_HOME);
-  const found = homeWallpapers.find((w) => w.id === savedId);
-  return found ? found.gradient : homeWallpapers[0].gradient;
+// 커스텀 이미지 사용 시 id를 'custom'으로 저장
+export const CUSTOM_ID = 'custom';
+
+// ── 이미지 압축/리사이즈 ──
+const MAX_WIDTH = 600;
+const MAX_HEIGHT = 1200;
+const JPEG_QUALITY = 0.7;
+
+export function compressImage(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let { width, height } = img;
+
+        // 비율 유지하며 리사이즈
+        if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+          const ratio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+          width = Math.round(width * ratio);
+          height = Math.round(height * ratio);
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas context 생성 실패'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', JPEG_QUALITY);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('이미지 로드 실패'));
+      img.src = e.target?.result as string;
+    };
+    reader.onerror = () => reject(new Error('파일 읽기 실패'));
+    reader.readAsDataURL(file);
+  });
 }
 
-export function getSavedLockWallpaper(): string {
-  const savedId = localStorage.getItem(STORAGE_KEY_LOCK);
-  const found = lockWallpapers.find((w) => w.id === savedId);
-  return found ? found.gradient : lockWallpapers[0].gradient;
+// ── 커스텀 이미지 저장/불러오기 ──
+export function saveCustomHomeImage(dataUrl: string): void {
+  localStorage.setItem(STORAGE_KEY_HOME, CUSTOM_ID);
+  localStorage.setItem(STORAGE_KEY_HOME_IMAGE, dataUrl);
 }
 
+export function saveCustomLockImage(dataUrl: string): void {
+  localStorage.setItem(STORAGE_KEY_LOCK, CUSTOM_ID);
+  localStorage.setItem(STORAGE_KEY_LOCK_IMAGE, dataUrl);
+}
+
+export function getCustomHomeImage(): string | null {
+  return localStorage.getItem(STORAGE_KEY_HOME_IMAGE);
+}
+
+export function getCustomLockImage(): string | null {
+  return localStorage.getItem(STORAGE_KEY_LOCK_IMAGE);
+}
+
+function clearCustomHomeImage(): void {
+  localStorage.removeItem(STORAGE_KEY_HOME_IMAGE);
+}
+
+function clearCustomLockImage(): void {
+  localStorage.removeItem(STORAGE_KEY_LOCK_IMAGE);
+}
+
+// ── 배경화면 정보 타입 ──
+export interface WallpaperValue {
+  type: 'gradient' | 'image';
+  value: string; // CSS gradient 또는 data URL
+}
+
+// ── 프리셋 ID로 저장 (커스텀 이미지 초기화) ──
+export function saveHomeWallpaper(id: string): void {
+  localStorage.setItem(STORAGE_KEY_HOME, id);
+  if (id !== CUSTOM_ID) clearCustomHomeImage();
+}
+
+export function saveLockWallpaper(id: string): void {
+  localStorage.setItem(STORAGE_KEY_LOCK, id);
+  if (id !== CUSTOM_ID) clearCustomLockImage();
+}
+
+// ── 저장된 값 불러오기 ──
 export function getSavedHomeId(): string {
   return localStorage.getItem(STORAGE_KEY_HOME) ?? 'peach';
 }
@@ -53,10 +133,22 @@ export function getSavedLockId(): string {
   return localStorage.getItem(STORAGE_KEY_LOCK) ?? 'peach';
 }
 
-export function saveHomeWallpaper(id: string): void {
-  localStorage.setItem(STORAGE_KEY_HOME, id);
+export function getSavedHomeWallpaper(): WallpaperValue {
+  const savedId = getSavedHomeId();
+  if (savedId === CUSTOM_ID) {
+    const img = getCustomHomeImage();
+    if (img) return { type: 'image', value: img };
+  }
+  const found = homeWallpapers.find((w) => w.id === savedId);
+  return { type: 'gradient', value: found ? found.gradient : homeWallpapers[0].gradient };
 }
 
-export function saveLockWallpaper(id: string): void {
-  localStorage.setItem(STORAGE_KEY_LOCK, id);
+export function getSavedLockWallpaper(): WallpaperValue {
+  const savedId = getSavedLockId();
+  if (savedId === CUSTOM_ID) {
+    const img = getCustomLockImage();
+    if (img) return { type: 'image', value: img };
+  }
+  const found = lockWallpapers.find((w) => w.id === savedId);
+  return { type: 'gradient', value: found ? found.gradient : lockWallpapers[0].gradient };
 }

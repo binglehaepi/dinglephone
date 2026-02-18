@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
 import { ChevronUp } from 'lucide-react';
 import { DinglePhoneData } from '../types';
+import { WallpaperValue } from '../lib/wallpaper';
 
 interface LockScreenProps {
   data: DinglePhoneData;
   onUnlock: () => void;
-  lockWallpaper?: string;
+  lockWallpaper?: WallpaperValue;
 }
 
 export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWallpaper }) => {
@@ -40,16 +41,33 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWall
   const dateStr = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
   const timeStr = today.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
 
-  // 나이트 모드 감지 (어두운 배경)
-  const currentBg = lockWallpaper || data.theme.lockWallpaper;
-  const isDark = currentBg.includes('#1a1a') || currentBg.includes('#0f0f') || currentBg.includes('#0a25') || currentBg.includes('#1621');
+  // 배경 스타일 결정
+  const isImage = lockWallpaper?.type === 'image';
+  const bgStyle: React.CSSProperties = isImage
+    ? {
+        backgroundImage: `url(${lockWallpaper!.value})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }
+    : {
+        background: lockWallpaper?.value || data.theme.lockWallpaper,
+      };
+
+  // 어두운 배경 감지 (나이트 모드 or 사진 배경)
+  const gradientValue = lockWallpaper?.value || '';
+  const isDark =
+    isImage ||
+    gradientValue.includes('#1a1a') ||
+    gradientValue.includes('#0f0f') ||
+    gradientValue.includes('#0a25') ||
+    gradientValue.includes('#1621');
 
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 z-40 flex flex-col items-center pt-20 pb-8 select-none transition-transform ease-out bg-bg-primary"
       style={{
-        background: lockWallpaper || data.theme.lockWallpaper,
+        ...bgStyle,
         transform: `translateY(${currentY}px)`,
         transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
       }}
@@ -61,23 +79,30 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWall
       onMouseUp={handleEnd}
       onMouseLeave={handleEnd}
     >
+      {/* 사진 배경일 때 어두운 오버레이 */}
+      {isImage && (
+        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
+      )}
+
       {/* Background Decor */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[15%] left-[8%] text-accent/10 text-xl animate-float">✦</div>
-        <div className="absolute top-[50%] right-[10%] text-sub-lavender/20 text-lg animate-float" style={{animationDelay: '1s'}}>✦</div>
-      </div>
+      {!isImage && (
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[15%] left-[8%] text-accent/10 text-xl animate-float">✦</div>
+          <div className="absolute top-[50%] right-[10%] text-sub-lavender/20 text-lg animate-float" style={{animationDelay: '1s'}}>✦</div>
+        </div>
+      )}
 
       <div className={`flex flex-col items-center mt-8 relative z-10 ${isDark ? 'text-white' : 'text-text-primary'}`}>
-        <div className="text-[56px] font-normal leading-none tracking-tight font-display">
+        <div className={`text-[56px] font-normal leading-none tracking-tight font-display ${isDark ? 'drop-shadow-md' : ''}`}>
           {timeStr}
         </div>
-        <div className={`text-[14px] font-medium mt-3 tracking-wide ${isDark ? 'text-white/70' : 'text-text-secondary'}`}>
+        <div className={`text-[14px] font-medium mt-3 tracking-wide ${isDark ? 'text-white/70 drop-shadow-sm' : 'text-text-secondary'}`}>
           {dateStr}
         </div>
       </div>
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center pointer-events-none gap-4">
-         <div className="text-[48px] animate-pulse drop-shadow-sm">
+      <div className="flex-1 w-full flex flex-col items-center justify-center pointer-events-none gap-4 relative z-10">
+         <div className={`text-[48px] animate-pulse ${isDark ? 'drop-shadow-lg' : 'drop-shadow-sm'}`}>
             {data.owner.emoji}
          </div>
          <div className={`font-medium text-[13px] px-4 py-1.5 rounded-full backdrop-blur-sm border ${isDark ? 'text-white/80 bg-white/10 border-white/20' : 'text-text-secondary bg-white/40 border-white/40'}`}>
@@ -85,7 +110,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWall
          </div>
       </div>
 
-      <div className="w-full px-6 space-y-3 pointer-events-none mb-16">
+      <div className="w-full px-6 space-y-3 pointer-events-none mb-16 relative z-10">
         {data.apps.messages.filter(m => m.unread).slice(0, 2).map((msg, i) => (
           <div key={i} className="bg-white/85 backdrop-blur-md rounded-[20px] p-4 text-text-primary shadow-soft border border-white/60 flex flex-col gap-1">
             <div className="flex justify-between items-baseline">
@@ -100,12 +125,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWall
         ))}
       </div>
 
-      <div className={`flex flex-col items-center animate-bounce gap-2 ${isDark ? 'text-white/50' : 'text-text-tertiary'}`}>
+      <div className={`flex flex-col items-center animate-bounce gap-2 relative z-10 ${isDark ? 'text-white/50' : 'text-text-tertiary'}`}>
         <ChevronUp size={20} />
         <span className="text-[12px] font-medium animate-pulse">위로 밀어서 잠금해제</span>
       </div>
 
-      <div className={`absolute bottom-2 font-bold tracking-widest text-xs opacity-50 ${isDark ? 'text-white/40' : 'text-text-tertiary'}`}>
+      <div className={`absolute bottom-2 font-bold tracking-widest text-xs opacity-50 z-10 ${isDark ? 'text-white/40' : 'text-text-tertiary'}`}>
           ···
       </div>
     </div>

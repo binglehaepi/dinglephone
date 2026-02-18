@@ -22,9 +22,25 @@ import {
   getSavedLockWallpaper,
   saveHomeWallpaper,
   saveLockWallpaper,
+  saveCustomHomeImage,
+  saveCustomLockImage,
+  WallpaperValue,
+  CUSTOM_ID,
 } from '../lib/wallpaper';
 
 type Screen = 'LOCK' | 'HOME' | string;
+
+// WallpaperValue → CSS style 변환
+function wallpaperToStyle(wp: WallpaperValue): React.CSSProperties {
+  if (wp.type === 'image') {
+    return {
+      backgroundImage: `url(${wp.value})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+    };
+  }
+  return { background: wp.value };
+}
 
 export const PhoneOS: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('LOCK');
@@ -32,8 +48,8 @@ export const PhoneOS: React.FC = () => {
   const [showSearch, setShowSearch] = useState(false);
 
   // 배경화면 상태 (localStorage에서 초기값 로드)
-  const [homeWallpaper, setHomeWallpaper] = useState(getSavedHomeWallpaper);
-  const [lockWallpaper, setLockWallpaper] = useState(getSavedLockWallpaper);
+  const [homeWP, setHomeWP] = useState<WallpaperValue>(getSavedHomeWallpaper);
+  const [lockWP, setLockWP] = useState<WallpaperValue>(getSavedLockWallpaper);
 
   const data = demoPhoneData;
 
@@ -58,14 +74,22 @@ export const PhoneOS: React.FC = () => {
   };
 
   // 배경화면 변경 핸들러
-  const handleChangeHomeWallpaper = useCallback((id: string, gradient: string) => {
-    saveHomeWallpaper(id);
-    setHomeWallpaper(gradient);
+  const handleChangeHomeWallpaper = useCallback((id: string, wp: WallpaperValue) => {
+    if (id === CUSTOM_ID && wp.type === 'image') {
+      saveCustomHomeImage(wp.value);
+    } else {
+      saveHomeWallpaper(id);
+    }
+    setHomeWP(wp);
   }, []);
 
-  const handleChangeLockWallpaper = useCallback((id: string, gradient: string) => {
-    saveLockWallpaper(id);
-    setLockWallpaper(gradient);
+  const handleChangeLockWallpaper = useCallback((id: string, wp: WallpaperValue) => {
+    if (id === CUSTOM_ID && wp.type === 'image') {
+      saveCustomLockImage(wp.value);
+    } else {
+      saveLockWallpaper(id);
+    }
+    setLockWP(wp);
   }, []);
 
   const renderApp = () => {
@@ -104,7 +128,7 @@ export const PhoneOS: React.FC = () => {
       <div 
         className="absolute inset-0 z-0 transition-all duration-500 ease-in-out"
         style={{ 
-          background: homeWallpaper,
+          ...wallpaperToStyle(homeWP),
           transform: isApp ? 'scale(0.92)' : 'scale(1)',
           borderRadius: isApp ? '32px' : '0px',
         }}
@@ -121,7 +145,7 @@ export const PhoneOS: React.FC = () => {
         {showSearch && <SearchOverlay onClose={() => setShowSearch(false)} />}
 
         {/* Lock Screen Layer */}
-        {isLock && <LockScreen data={data} onUnlock={handleUnlock} lockWallpaper={lockWallpaper} />}
+        {isLock && <LockScreen data={data} onUnlock={handleUnlock} lockWallpaper={lockWP} />}
 
         {/* Home Screen Layer */}
         <div 
