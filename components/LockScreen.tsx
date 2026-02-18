@@ -5,9 +5,10 @@ import { DinglePhoneData } from '../types';
 interface LockScreenProps {
   data: DinglePhoneData;
   onUnlock: () => void;
+  lockWallpaper?: string;
 }
 
-export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock }) => {
+export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWallpaper }) => {
   const [startY, setStartY] = useState<number | null>(null);
   const [currentY, setCurrentY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -39,12 +40,16 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock }) => {
   const dateStr = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
   const timeStr = today.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
 
+  // 나이트 모드 감지 (어두운 배경)
+  const currentBg = lockWallpaper || data.theme.lockWallpaper;
+  const isDark = currentBg.includes('#1a1a') || currentBg.includes('#0f0f') || currentBg.includes('#0a25') || currentBg.includes('#1621');
+
   return (
     <div 
       ref={containerRef}
       className="absolute inset-0 z-40 flex flex-col items-center pt-20 pb-8 select-none transition-transform ease-out bg-bg-primary"
       style={{
-        background: data.theme.lockWallpaper,
+        background: lockWallpaper || data.theme.lockWallpaper,
         transform: `translateY(${currentY}px)`,
         transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
       }}
@@ -62,11 +67,11 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock }) => {
         <div className="absolute top-[50%] right-[10%] text-sub-lavender/20 text-lg animate-float" style={{animationDelay: '1s'}}>✦</div>
       </div>
 
-      <div className="flex flex-col items-center text-text-primary mt-8 relative z-10">
-        <div className="text-[56px] font-normal leading-none tracking-tight font-display text-text-primary">
+      <div className={`flex flex-col items-center mt-8 relative z-10 ${isDark ? 'text-white' : 'text-text-primary'}`}>
+        <div className="text-[56px] font-normal leading-none tracking-tight font-display">
           {timeStr}
         </div>
-        <div className="text-[14px] font-medium mt-3 text-text-secondary tracking-wide">
+        <div className={`text-[14px] font-medium mt-3 tracking-wide ${isDark ? 'text-white/70' : 'text-text-secondary'}`}>
           {dateStr}
         </div>
       </div>
@@ -75,7 +80,7 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock }) => {
          <div className="text-[48px] animate-pulse drop-shadow-sm">
             {data.owner.emoji}
          </div>
-         <div className="text-text-secondary font-medium text-[13px] bg-white/40 px-4 py-1.5 rounded-full backdrop-blur-sm border border-white/40">
+         <div className={`font-medium text-[13px] px-4 py-1.5 rounded-full backdrop-blur-sm border ${isDark ? 'text-white/80 bg-white/10 border-white/20' : 'text-text-secondary bg-white/40 border-white/40'}`}>
             {data.owner.name}의 폰
          </div>
       </div>
@@ -95,12 +100,12 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock }) => {
         ))}
       </div>
 
-      <div className="flex flex-col items-center text-text-tertiary animate-bounce gap-2">
+      <div className={`flex flex-col items-center animate-bounce gap-2 ${isDark ? 'text-white/50' : 'text-text-tertiary'}`}>
         <ChevronUp size={20} />
         <span className="text-[12px] font-medium animate-pulse">위로 밀어서 잠금해제</span>
       </div>
 
-      <div className="absolute bottom-2 font-bold text-text-tertiary tracking-widest text-xs opacity-50">
+      <div className={`absolute bottom-2 font-bold tracking-widest text-xs opacity-50 ${isDark ? 'text-white/40' : 'text-text-tertiary'}`}>
           ···
       </div>
     </div>

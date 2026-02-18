@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { StatusBar } from './StatusBar';
 import { LockScreen } from './LockScreen';
 import { HomeScreen } from './HomeScreen';
@@ -17,6 +17,12 @@ import { AppStoreApp } from './apps/AppStoreApp';
 import { SettingsApp } from './apps/SettingsApp';
 
 import { demoPhoneData } from '../data/phoneData';
+import {
+  getSavedHomeWallpaper,
+  getSavedLockWallpaper,
+  saveHomeWallpaper,
+  saveLockWallpaper,
+} from '../lib/wallpaper';
 
 type Screen = 'LOCK' | 'HOME' | string;
 
@@ -24,6 +30,10 @@ export const PhoneOS: React.FC = () => {
   const [screen, setScreen] = useState<Screen>('LOCK');
   const [closingApp, setClosingApp] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+
+  // 배경화면 상태 (localStorage에서 초기값 로드)
+  const [homeWallpaper, setHomeWallpaper] = useState(getSavedHomeWallpaper);
+  const [lockWallpaper, setLockWallpaper] = useState(getSavedLockWallpaper);
 
   const data = demoPhoneData;
 
@@ -47,6 +57,17 @@ export const PhoneOS: React.FC = () => {
     }, 200);
   };
 
+  // 배경화면 변경 핸들러
+  const handleChangeHomeWallpaper = useCallback((id: string, gradient: string) => {
+    saveHomeWallpaper(id);
+    setHomeWallpaper(gradient);
+  }, []);
+
+  const handleChangeLockWallpaper = useCallback((id: string, gradient: string) => {
+    saveLockWallpaper(id);
+    setLockWallpaper(gradient);
+  }, []);
+
   const renderApp = () => {
     const commonProps = { data, onClose: closeApp };
     switch (screen) {
@@ -61,7 +82,14 @@ export const PhoneOS: React.FC = () => {
       case 'expenses': return <ExpenseApp {...commonProps} />;
       case 'wishlist': return <WishlistApp {...commonProps} />;
       case 'appstore': return <AppStoreApp {...commonProps} />;
-      case 'settings': return <SettingsApp onClose={closeApp} />;
+      case 'settings':
+        return (
+          <SettingsApp
+            onClose={closeApp}
+            onChangeHomeWallpaper={handleChangeHomeWallpaper}
+            onChangeLockWallpaper={handleChangeLockWallpaper}
+          />
+        );
       default: return null;
     }
   };
@@ -76,7 +104,7 @@ export const PhoneOS: React.FC = () => {
       <div 
         className="absolute inset-0 z-0 transition-all duration-500 ease-in-out"
         style={{ 
-          background: data.theme.wallpaper,
+          background: homeWallpaper,
           transform: isApp ? 'scale(0.92)' : 'scale(1)',
           borderRadius: isApp ? '32px' : '0px',
         }}
@@ -93,7 +121,7 @@ export const PhoneOS: React.FC = () => {
         {showSearch && <SearchOverlay onClose={() => setShowSearch(false)} />}
 
         {/* Lock Screen Layer */}
-        {isLock && <LockScreen data={data} onUnlock={handleUnlock} />}
+        {isLock && <LockScreen data={data} onUnlock={handleUnlock} lockWallpaper={lockWallpaper} />}
 
         {/* Home Screen Layer */}
         <div 
