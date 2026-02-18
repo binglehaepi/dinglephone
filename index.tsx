@@ -1,6 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
+import { ThemeProvider } from './context/ThemeContext';
+import { PhoneProvider } from './context/PhoneContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -10,6 +12,10 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <App />
+    <PhoneProvider>
+      <ThemeProvider>
+        <App />
+      </ThemeProvider>
+    </PhoneProvider>
   </React.StrictMode>
 );

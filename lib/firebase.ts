@@ -3,9 +3,13 @@ import {
   getFirestore,
   collection,
   addDoc as firestoreAddDoc,
+  doc,
+  updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
+  where,
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
@@ -52,6 +56,54 @@ export const subscribeToCollection = (
         ...d,
         id: doc.id,
         // createdAt 를 문자열로 변환
+        timeAgo: d.createdAt instanceof Timestamp
+          ? formatTimeAgo(d.createdAt.toDate())
+          : '방금 전',
+      };
+    });
+    callback(items);
+  });
+
+  return unsubscribe;
+};
+
+// ── Helper: Firestore 문서 업데이트 ──
+export const updateDocument = async (
+  collectionName: string,
+  docId: string,
+  data: Record<string, unknown>,
+) => {
+  const docRef = doc(db, collectionName, docId);
+  await updateDoc(docRef, data);
+};
+
+// ── Helper: Firestore 문서 삭제 ──
+export const removeDocument = async (
+  collectionName: string,
+  docId: string,
+) => {
+  const docRef = doc(db, collectionName, docId);
+  await deleteDoc(docRef);
+};
+
+// ── Helper: 신고된 문서 구독 ──
+export const subscribeToReported = (
+  collectionName: string,
+  callback: (items: any[]) => void,
+) => {
+  const q = query(
+    collection(db, collectionName),
+    where('reported', '==', true),
+    orderBy('createdAt', 'desc'),
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const items = snapshot.docs.map((docSnap) => {
+      const d = docSnap.data();
+      return {
+        ...d,
+        id: docSnap.id,
+        _collection: collectionName,
         timeAgo: d.createdAt instanceof Timestamp
           ? formatTimeAgo(d.createdAt.toDate())
           : '방금 전',

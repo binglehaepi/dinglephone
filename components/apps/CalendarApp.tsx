@@ -1,16 +1,59 @@
-import React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import React, { useState } from 'react';
+import { ChevronLeft, Plus, Trash2 } from 'lucide-react';
 import { DinglePhoneData } from '../../types';
+import { usePhone } from '../../context/PhoneContext';
+import { EditSheet, DingleInput, SaveButton } from '../EditSheet';
 
 interface CalendarAppProps {
   data: DinglePhoneData;
   onClose: () => void;
 }
 
+const EMOJI_OPTIONS = ['📱', '🎯', '📦', '🎁', '📝', '🚀', '⚒️', '🐦', '📋', '🎉', '☕', '💻'];
+
 export const CalendarApp: React.FC<CalendarAppProps> = ({ data, onClose }) => {
-  const today = 18; // Hardcoded
-  const daysInMonth = 28; // Feb
-  const startDay = 0; // Sunday
+  const { isEditable, currentPhone, updateAppData } = usePhone();
+  const [showAdd, setShowAdd] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDate, setNewDate] = useState('');
+  const [newIcon, setNewIcon] = useState('📅');
+  const [newColor, setNewColor] = useState('#E8915A');
+
+  const today = new Date().getDate();
+  const currentMonth = new Date().getMonth() + 1;
+  const eventMonthsArr = data.apps.calendar.events.map(e => parseInt(e.date.split('-')[1]));
+  const displayMonth = eventMonthsArr.length > 0 ? eventMonthsArr[0] : currentMonth;
+  const displayYear = 2026;
+  const daysInMonth = new Date(displayYear, displayMonth, 0).getDate();
+  const startDay = new Date(displayYear, displayMonth - 1, 1).getDay();
+
+  const handleAdd = () => {
+    if (!newTitle.trim() || !newDate || !currentPhone) return;
+    const updated = {
+      ...currentPhone.apps.calendar,
+      events: [...currentPhone.apps.calendar.events, {
+        date: newDate,
+        title: newTitle,
+        icon: newIcon,
+        color: newColor,
+      }],
+    };
+    updateAppData('calendar', updated);
+    setShowAdd(false);
+    setNewTitle('');
+    setNewDate('');
+    setNewIcon('📅');
+    setNewColor('#E8915A');
+  };
+
+  const handleDelete = (index: number) => {
+    if (!currentPhone) return;
+    const updated = {
+      ...currentPhone.apps.calendar,
+      events: currentPhone.apps.calendar.events.filter((_, i) => i !== index),
+    };
+    updateAppData('calendar', updated);
+  };
 
   const renderCalendarGrid = () => {
     const grid = [];
@@ -25,7 +68,7 @@ export const CalendarApp: React.FC<CalendarAppProps> = ({ data, onClose }) => {
         <div key={d} className="h-12 flex flex-col items-center justify-center relative">
           <div 
             className={`w-8 h-8 flex items-center justify-center rounded-full text-sm font-medium ${
-              isToday ? 'bg-accent text-white shadow-md' : 'text-text-primary'
+              isToday ? 'bg-dingle text-white shadow-md' : 'text-ink'
             }`}
           >
             {d}
@@ -40,19 +83,30 @@ export const CalendarApp: React.FC<CalendarAppProps> = ({ data, onClose }) => {
   };
 
   return (
-    <div className="flex flex-col h-full bg-bg-primary text-text-primary">
-      <div className="pt-[54px] pb-4 px-6 flex items-center justify-between sticky top-0 bg-bg-primary/90 backdrop-blur-sm z-10">
-        <button onClick={onClose} className="text-text-secondary -ml-2 p-1">
-          <ChevronLeft size={28} />
+    <div className="flex flex-col h-full bg-cream-100 text-ink">
+      <div className="pt-[54px] pb-4 px-6 flex items-center justify-between sticky top-0 bg-cream-100/90 backdrop-blur-sm z-10">
+        <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+          <ChevronLeft size={16} className="text-ink" />
         </button>
-        <span className="text-xl font-bold font-display">February</span>
-        <div className="w-8" />
+        <span className="text-xl font-bold font-display text-ink">
+          {displayMonth === 1 ? 'January' : displayMonth === 2 ? 'February' : 'March'} {displayYear}
+        </span>
+        {isEditable ? (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="w-8 h-8 rounded-full flex items-center justify-center"
+            style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+          >
+            <Plus size={16} />
+          </button>
+        ) : (
+          <div className="w-8" />
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto no-scrollbar px-6">
-         {/* Calendar Grid */}
-         <div className="bg-white p-4 rounded-[24px] shadow-sm border border-bg-secondary mb-6">
-            <div className="grid grid-cols-7 text-center text-text-tertiary text-[10px] font-bold mb-2 tracking-widest">
+         <div className="bg-cream-50 p-4 rounded-dingle-lg shadow-card border border-cream-300 mb-6">
+            <div className="grid grid-cols-7 text-center text-ink-tertiary text-[10px] font-bold mb-2 tracking-widest">
                 <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
             </div>
             <div className="grid grid-cols-7 gap-y-1">
@@ -60,32 +114,77 @@ export const CalendarApp: React.FC<CalendarAppProps> = ({ data, onClose }) => {
             </div>
          </div>
 
-         {/* Events List */}
          <div className="space-y-4 pb-8">
             <div className="flex items-center gap-2 mb-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-accent"></div>
-                <span className="text-sm font-bold text-text-secondary">Upcoming</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-dingle"></div>
+                <span className="text-sm font-bold text-ink-secondary">Upcoming</span>
             </div>
 
             {data.apps.calendar.events.map((event, i) => (
-              <div key={i} className="flex gap-4 items-center bg-white p-4 rounded-[20px] shadow-sm border border-bg-secondary">
-                 <div className="flex flex-col items-center w-12 border-r border-dashed border-bg-secondary pr-4">
-                    <span className="text-[10px] uppercase font-bold text-text-tertiary font-display">Feb</span>
-                    <span className="text-xl font-bold text-text-primary font-display">{event.date.split('-')[2]}</span>
+              <div key={i} className="flex gap-4 items-center bg-cream-50 p-4 rounded-dingle shadow-card border border-cream-300">
+                 <div className="flex flex-col items-center w-12 border-r border-dashed border-cream-300 pr-4">
+                    <span className="text-[10px] uppercase font-bold text-ink-tertiary font-display">
+                      {parseInt(event.date.split('-')[1]) === 1 ? 'Jan' : parseInt(event.date.split('-')[1]) === 2 ? 'Feb' : 'Mar'}
+                    </span>
+                    <span className="text-xl font-bold text-ink font-display">{event.date.split('-')[2]}</span>
                  </div>
                  <div className="flex-1 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full flex items-center justify-center text-lg" style={{backgroundColor: `${event.color}33`}}>
                         {event.icon}
                     </div>
-                    <div>
-                       <div className="font-bold text-text-primary">{event.title}</div>
-                       <div className="text-xs text-text-tertiary">All day</div>
+                    <div className="flex-1">
+                       <div className="font-bold text-ink">{event.title}</div>
+                       <div className="text-xs text-ink-tertiary">All day</div>
                     </div>
+                    {isEditable && (
+                      <button
+                        onClick={() => handleDelete(i)}
+                        className="w-7 h-7 rounded-full bg-red-50 flex items-center justify-center shrink-0"
+                      >
+                        <Trash2 size={12} className="text-red-400" />
+                      </button>
+                    )}
                  </div>
               </div>
             ))}
+
+            {isEditable && data.apps.calendar.events.length === 0 && (
+              <div className="text-center py-8">
+                <div className="text-3xl mb-2">📅</div>
+                <p className="text-sm text-ink-tertiary">일정을 추가해보세요</p>
+              </div>
+            )}
          </div>
       </div>
+
+      {/* Add Event Sheet */}
+      <EditSheet isOpen={showAdd} onClose={() => setShowAdd(false)} title="📅 일정 추가">
+        <DingleInput label="제목" value={newTitle} onChange={setNewTitle} placeholder="일정 제목" />
+        <DingleInput label="날짜" value={newDate} onChange={setNewDate} placeholder="2026-02-20" type="date" />
+        <div className="mb-3">
+          <label className="text-xs font-medium mb-1 block" style={{ color: 'var(--text-secondary)' }}>
+            아이콘
+          </label>
+          <div className="flex flex-wrap gap-2">
+            {EMOJI_OPTIONS.map(e => (
+              <button
+                key={e}
+                onClick={() => setNewIcon(e)}
+                className={`w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all ${
+                  newIcon === e ? 'ring-2 scale-110' : 'opacity-60'
+                }`}
+                style={{
+                  background: 'var(--bg-sunken)',
+                  ...(newIcon === e ? { '--tw-ring-color': 'var(--accent)' } as any : {}),
+                }}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
+        <SaveButton onClick={handleAdd} disabled={!newTitle.trim() || !newDate} label="추가" />
+      </EditSheet>
     </div>
   );
 };

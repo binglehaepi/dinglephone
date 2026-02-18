@@ -1,7 +1,9 @@
-import React, { useState, useRef } from 'react';
+import React from 'react';
+import { motion, useMotionValue, useTransform, PanInfo } from 'framer-motion';
 import { ChevronUp } from 'lucide-react';
 import { DinglePhoneData } from '../types';
 import { WallpaperValue } from '../lib/wallpaper';
+import { useTheme } from '../context/ThemeContext';
 
 interface LockScreenProps {
   data: DinglePhoneData;
@@ -9,39 +11,29 @@ interface LockScreenProps {
   lockWallpaper?: WallpaperValue;
 }
 
+const dingleEase = [0.32, 0.72, 0, 1];
+
+// 배경 장식 위치 (% 기반)
+const decoPositions = [
+  { top: '12%', left: '10%', size: 'text-2xl' },
+  { top: '25%', right: '15%', size: 'text-lg' },
+  { top: '45%', left: '75%', size: 'text-xl' },
+  { top: '60%', left: '8%', size: 'text-sm' },
+  { top: '70%', right: '25%', size: 'text-lg' },
+  { top: '85%', left: '50%', size: 'text-xl' },
+  { top: '35%', left: '55%', size: 'text-sm' },
+  { top: '78%', left: '20%', size: 'text-lg' },
+];
+
 export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWallpaper }) => {
-  const [startY, setStartY] = useState<number | null>(null);
-  const [currentY, setCurrentY] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const handleStart = (y: number) => {
-    setStartY(y);
-    setIsDragging(true);
-  };
-
-  const handleMove = (y: number) => {
-    if (!isDragging || startY === null) return;
-    const delta = Math.min(0, y - startY); 
-    setCurrentY(delta);
-  };
-
-  const handleEnd = () => {
-    setIsDragging(false);
-    if (currentY < -120) {
-      setCurrentY(-1000); 
-      setTimeout(onUnlock, 300);
-    } else {
-      setCurrentY(0);
-    }
-    setStartY(null);
-  };
+  const { theme } = useTheme();
+  const y = useMotionValue(0);
+  const opacity = useTransform(y, [-200, 0], [0, 1]);
 
   const today = new Date();
   const dateStr = today.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' });
   const timeStr = today.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: false });
 
-  // 배경 스타일 결정
   const isImage = lockWallpaper?.type === 'image';
   const bgStyle: React.CSSProperties = isImage
     ? {
@@ -50,89 +42,102 @@ export const LockScreen: React.FC<LockScreenProps> = ({ data, onUnlock, lockWall
         backgroundPosition: 'center',
       }
     : {
-        background: lockWallpaper?.value || data.theme.lockWallpaper,
+        background: lockWallpaper?.value || theme.lockWallpaper,
       };
+  const isDark = isImage;
 
-  // 어두운 배경 감지 (나이트 모드 or 사진 배경)
-  const gradientValue = lockWallpaper?.value || '';
-  const isDark =
-    isImage ||
-    gradientValue.includes('#1a1a') ||
-    gradientValue.includes('#0f0f') ||
-    gradientValue.includes('#0a25') ||
-    gradientValue.includes('#1621');
+  const handleDragEnd = (_: any, info: PanInfo) => {
+    if (info.offset.y < -120) {
+      onUnlock();
+    }
+  };
+
+  const { bgDecoration, notification } = theme;
+  const decorCount = Math.min(bgDecoration.count, decoPositions.length);
 
   return (
-    <div 
-      ref={containerRef}
-      className="absolute inset-0 z-40 flex flex-col items-center pt-20 pb-8 select-none transition-transform ease-out bg-bg-primary"
-      style={{
-        ...bgStyle,
-        transform: `translateY(${currentY}px)`,
-        transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.32, 0.72, 0, 1)'
-      }}
-      onTouchStart={(e) => handleStart(e.touches[0].clientY)}
-      onTouchMove={(e) => handleMove(e.touches[0].clientY)}
-      onTouchEnd={handleEnd}
-      onMouseDown={(e) => handleStart(e.clientY)}
-      onMouseMove={(e) => handleMove(e.clientY)}
-      onMouseUp={handleEnd}
-      onMouseLeave={handleEnd}
+    <motion.div
+      className="absolute inset-0 z-40 flex flex-col items-center pt-20 pb-8 select-none bg-cream-100 touch-pan-y"
+      style={{ ...bgStyle, y, opacity }}
+      drag="y"
+      dragConstraints={{ top: -300, bottom: 0 }}
+      dragElastic={0.2}
+      onDragEnd={handleDragEnd}
     >
-      {/* 사진 배경일 때 어두운 오버레이 */}
-      {isImage && (
-        <div className="absolute inset-0 bg-black/20 pointer-events-none" />
-      )}
+      {isImage && <div className="absolute inset-0 bg-black/20 pointer-events-none" />}
 
-      {/* Background Decor */}
-      {!isImage && (
+      {/* Background Decorations */}
+      {!isImage && decorCount > 0 && (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-[15%] left-[8%] text-accent/10 text-xl animate-float">✦</div>
-          <div className="absolute top-[50%] right-[10%] text-sub-lavender/20 text-lg animate-float" style={{animationDelay: '1s'}}>✦</div>
+          {decoPositions.slice(0, decorCount).map((pos, i) => (
+            <div
+              key={i}
+              className={`absolute ${pos.size}`}
+              style={{
+                top: pos.top,
+                left: pos.left,
+                right: (pos as any).right,
+                opacity: bgDecoration.opacity,
+                color: 'var(--text-primary)',
+              }}
+            >
+              {bgDecoration.emoji}
+            </div>
+          ))}
         </div>
       )}
 
-      <div className={`flex flex-col items-center mt-8 relative z-10 ${isDark ? 'text-white' : 'text-text-primary'}`}>
-        <div className={`text-[56px] font-normal leading-none tracking-tight font-display ${isDark ? 'drop-shadow-md' : ''}`}>
+      {/* Time & Date */}
+      <div className={`flex flex-col items-center mt-8 relative z-10 ${isDark ? 'text-white' : 'text-ink'}`}>
+        <div className={`text-[56px] font-light leading-none tracking-tight font-display ${isDark ? 'drop-shadow-md' : ''}`}>
           {timeStr}
         </div>
-        <div className={`text-[14px] font-medium mt-3 tracking-wide ${isDark ? 'text-white/70 drop-shadow-sm' : 'text-text-secondary'}`}>
+        <div className={`text-[14px] font-medium mt-3 tracking-wide ${isDark ? 'text-white/70 drop-shadow-sm' : 'text-ink-secondary'}`}>
           {dateStr}
         </div>
       </div>
 
-      <div className="flex-1 w-full flex flex-col items-center justify-center pointer-events-none gap-4 relative z-10">
-         <div className={`text-[48px] animate-pulse ${isDark ? 'drop-shadow-lg' : 'drop-shadow-sm'}`}>
-            {data.owner.emoji}
-         </div>
-         <div className={`font-medium text-[13px] px-4 py-1.5 rounded-full backdrop-blur-sm border ${isDark ? 'text-white/80 bg-white/10 border-white/20' : 'text-text-secondary bg-white/40 border-white/40'}`}>
-            {data.owner.name}의 폰
-         </div>
-      </div>
+      {/* Spacer */}
+      <div className="flex-1" />
 
+      {/* Notification Cards */}
       <div className="w-full px-6 space-y-3 pointer-events-none mb-16 relative z-10">
         {data.apps.messages.filter(m => m.unread).slice(0, 2).map((msg, i) => (
-          <div key={i} className="bg-white/85 backdrop-blur-md rounded-[20px] p-4 text-text-primary shadow-soft border border-white/60 flex flex-col gap-1">
+          <motion.div
+            key={i}
+            className="backdrop-blur-md rounded-dingle p-4 shadow-card flex flex-col gap-1"
+            style={{
+              background: notification.bg,
+              border: `1px solid ${notification.border}`,
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.1, duration: 0.3, ease: dingleEase as unknown as number[] }}
+          >
             <div className="flex justify-between items-baseline">
-              <span className="font-bold text-sm flex items-center gap-1">
-                <span className="text-xs">🍰</span> {msg.from}
-              </span>
-              <span className="text-xs text-text-secondary">{msg.time}</span>
+              <span className="font-bold text-sm text-ink flex items-center gap-1">{msg.from}</span>
+              <span className="text-xs text-ink-secondary">{msg.time}</span>
             </div>
-            <div className="w-full border-t border-dashed border-text-tertiary/30 my-1"></div>
-            <div className="text-sm text-text-secondary line-clamp-1">{msg.preview}</div>
-          </div>
+            <div className="w-full border-t border-dashed my-1" style={{ borderColor: notification.divider }} />
+            <div className="text-sm text-ink-secondary line-clamp-1">{msg.preview}</div>
+          </motion.div>
         ))}
       </div>
 
-      <div className={`flex flex-col items-center animate-bounce gap-2 relative z-10 ${isDark ? 'text-white/50' : 'text-text-tertiary'}`}>
+      {/* Unlock Hint */}
+      <motion.div
+        className={`flex flex-col items-center gap-2 relative z-10 ${isDark ? 'text-white/50' : 'text-ink-tertiary'}`}
+        animate={{ y: [0, -6, 0] }}
+        transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+      >
         <ChevronUp size={20} />
-        <span className="text-[12px] font-medium animate-pulse">위로 밀어서 잠금해제</span>
-      </div>
+        <span className="text-[12px] font-medium">위로 밀어서 잠금해제</span>
+      </motion.div>
 
-      <div className={`absolute bottom-2 font-bold tracking-widest text-xs opacity-50 z-10 ${isDark ? 'text-white/40' : 'text-text-tertiary'}`}>
-          ···
+      {/* Home Indicator */}
+      <div className="absolute bottom-2 z-10">
+        <div className="w-[134px] h-[5px] rounded-full bg-ink/10" />
       </div>
-    </div>
+    </motion.div>
   );
 };

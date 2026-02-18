@@ -1,6 +1,34 @@
 import React, { useState, useEffect } from 'react';
+import { useTheme } from '../context/ThemeContext';
+
+function PillBattery() {
+  return (
+    <div className="flex items-center gap-0.5">
+      <div className="w-5 h-2.5 rounded-full border border-ink-tertiary/40 overflow-hidden p-px">
+        <div className="h-full w-[85%] rounded-full bg-dingle" />
+      </div>
+    </div>
+  );
+}
+
+function HeartBattery() {
+  return (
+    <span className="text-[11px] leading-none" style={{ color: 'var(--accent)' }}>♥</span>
+  );
+}
+
+function SignalIcon() {
+  return (
+    <div className="flex items-center gap-[1.5px]">
+      <div className="w-[3px] h-[5px] rounded-[1px] bg-ink-tertiary/60" />
+      <div className="w-[3px] h-[7px] rounded-[1px] bg-ink-tertiary/60" />
+      <div className="w-[3px] h-[9px] rounded-[1px] bg-ink-tertiary/60" />
+    </div>
+  );
+}
 
 export const StatusBar: React.FC = () => {
+  const { theme } = useTheme();
   const [time, setTime] = useState('');
 
   useEffect(() => {
@@ -14,29 +42,18 @@ export const StatusBar: React.FC = () => {
   }, []);
 
   return (
-    <div className="h-[44px] w-full flex justify-between items-end px-6 pb-2 text-text-secondary text-[14px] font-semibold select-none z-50 pointer-events-none">
-      <div className="flex items-center gap-1 font-display tracking-wide">
-        <span className="text-accent text-[12px]">♡</span>
-        <span>{time}</span>
+    <div className="flex justify-between items-center px-5 pt-3 pb-2 select-none z-50 pointer-events-none">
+      {/* 왼쪽: 테마 로고 + 시간 */}
+      <div className="flex items-center gap-1.5">
+        <span className="text-xs" style={{ color: 'var(--accent)' }}>{theme.statusBar.logo}</span>
+        <span className="font-display text-xs font-semibold text-ink-secondary">{time}</span>
       </div>
-      
-      <div className="flex items-center gap-3 text-text-secondary">
-        {/* Flower Wifi */}
-        <div className="text-[14px] leading-none">
-          ✿
-        </div>
 
-        {/* Dot Signal */}
-        <div className="text-[10px] tracking-[-1px] font-bold">
-          ▪▪▪
-        </div>
-
-        {/* Heart Battery */}
-        <div className="flex items-center gap-1 text-xs relative">
-           <div className="text-[16px] text-text-tertiary">♡</div>
-           <div className="absolute top-[6px] left-[3px] w-[10px] h-[6px] bg-accent rounded-[1px]"></div>
-           <span className="absolute -right-2 top-0 text-[8px] font-bold text-accent">⚡︎</span>
-        </div>
+      {/* 오른쪽: 와이파이 + 시그널 + 배터리 */}
+      <div className="flex items-center gap-2">
+        <span className="text-[10px] text-ink-tertiary">{theme.statusBar.wifi}</span>
+        <SignalIcon />
+        {theme.statusBar.battery === 'heart' ? <HeartBattery /> : <PillBattery />}
       </div>
     </div>
   );

@@ -1,8 +1,50 @@
 /* Dingle Phone - Global Styles */
 
+:root {
+  /* ── 배경 ── */
+  --bg-base: #FAF6F1;
+  --bg-elevated: #FFFDF9;
+  --bg-sunken: #F5EDE4;
+  --bg-hover: #F0E8DF;
+
+  /* ── 액센트 (딩글 오렌지) ── */
+  --accent: #E8915A;
+  --accent-hover: #D4803E;
+  --accent-light: #FFF3EB;
+  --accent-medium: #F5D0B5;
+  --accent-subtle: #FDF8F4;
+
+  /* ── 텍스트 ── */
+  --text-primary: #3D2F2F;
+  --text-secondary: #9A8580;
+  --text-tertiary: #C8B8B0;
+  --text-on-accent: #FFFFFF;
+
+  /* ── 보더 ── */
+  --border: #EDE5DC;
+  --border-strong: #DDD2C6;
+  --border-accent: #F5D0B5;
+
+  /* ── 그림자 ── */
+  --shadow-sm: 0 1px 2px rgba(61,47,47,0.04);
+  --shadow-md: 0 2px 8px rgba(61,47,47,0.06);
+  --shadow-lg: 0 4px 16px rgba(61,47,47,0.08);
+}
+
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* ── 테마 전환 트랜지션 ── */
+*:not([data-no-theme-transition]) {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.15s ease, box-shadow 0.3s ease;
+}
+
+/* framer-motion 등의 애니메이션 요소는 테마 트랜지션 제외 */
+[data-no-theme-transition],
+[data-no-theme-transition] * {
+  transition: none !important;
 }
 
 html, body {

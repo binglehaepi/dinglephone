@@ -1,6 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { PhoneShell } from './components/PhoneShell';
 import { PhoneOS } from './components/PhoneOS';
+import { PhoneListScreen } from './components/PhoneListScreen';
+import { usePhone } from './context/PhoneContext';
+import { useTheme } from './context/ThemeContext';
+
+// ── PhoneRouter: switches between phone list and selected phone ──
+function PhoneRouter() {
+  const { currentPhone } = usePhone();
+  const { setThemeById } = useTheme();
+
+  // Sync theme with selected phone's theme — only on phone switch, not on every update
+  const currentPhoneId = currentPhone?.id ?? null;
+  const currentPhoneTheme = currentPhone?.theme ?? 'default';
+  useEffect(() => {
+    setThemeById(currentPhoneTheme);
+  }, [currentPhoneId, currentPhoneTheme, setThemeById]);
+
+  if (!currentPhone) {
+    return <PhoneListScreen />;
+  }
+
+  return <PhoneOS phone={currentPhone} />;
+}
 
 const App: React.FC = () => {
   const [isMobile, setIsMobile] = useState(false);
@@ -9,7 +31,7 @@ const App: React.FC = () => {
   useEffect(() => {
     setMounted(true);
     const checkMobile = () => {
-      setIsMobile(window.innerWidth <= 500);
+      setIsMobile(window.innerWidth <= 430);
     };
     checkMobile();
     window.addEventListener('resize', checkMobile);
@@ -20,51 +42,51 @@ const App: React.FC = () => {
 
   if (isMobile) {
     return (
-      <div className="w-full h-[100dvh] overflow-hidden bg-bg-primary">
-        <PhoneOS />
+      <div className="w-full h-[100dvh] overflow-hidden bg-cream-100">
+        <PhoneRouter />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-[#FFF8F3] flex items-center justify-center p-8 gap-20 font-sans text-text-primary relative overflow-hidden">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-40 pointer-events-none" 
-           style={{
-             backgroundImage: 'radial-gradient(#F4A77A 1px, transparent 1px)',
-             backgroundSize: '32px 32px'
-           }}
-      />
-      
+    <div
+      className="min-h-screen w-full bg-cream-200 flex items-center justify-center p-8 gap-20 font-sans text-ink relative overflow-hidden"
+      style={{
+        backgroundImage: 'radial-gradient(circle, #EDE5DC 1px, transparent 1px)',
+        backgroundSize: '20px 20px',
+      }}
+    >
       <PhoneShell>
-        <PhoneOS />
+        <PhoneRouter />
       </PhoneShell>
       
-      <div className="hidden lg:block max-w-sm space-y-8 animate-in fade-in slide-in-from-bottom-8 duration-700 relative z-10">
+      <div className="hidden lg:block max-w-sm space-y-8 relative z-10">
          <div>
-            <div className="inline-block px-3 py-1 rounded-full bg-accent-light text-accent-dark text-xs font-bold tracking-wider mb-4 border border-accent/20">
+            <div className="inline-block px-3 py-1 rounded-full bg-dingle-light text-dingle-dark text-xs font-bold tracking-wider mb-4 border border-dingle/20">
                 DINGLE PHONE
             </div>
-            <h1 className="text-5xl font-bold text-text-primary mb-3 font-display">
-                달콤한 하루
+            <h1 className="text-5xl font-bold text-ink mb-3 font-display">
+                Dingle Phone
             </h1>
-            <p className="text-xl text-text-secondary leading-relaxed">
-               디저트 덕후의<br/>
+            <p className="text-xl text-ink-secondary leading-relaxed">
+               빙글빙글 딩글딩글<br/>
                핸드폰 훔쳐보기 ♡
             </p>
          </div>
          
          <div className="space-y-4">
-            <div className="flex items-center gap-4 p-5 bg-white rounded-[24px] shadow-soft border border-white/50">
-               <div className="w-12 h-12 rounded-full bg-sub-pink flex items-center justify-center text-2xl">🍰</div>
+            <div className="flex items-center gap-4 p-5 bg-cream-50 rounded-dingle-lg shadow-card border border-cream-300">
+               <div className="w-12 h-12 rounded-dingle-icon bg-cream-50 flex items-center justify-center overflow-hidden border border-cream-300">
+                  <img src="/coconut.png" alt="Dingle" className="w-full h-full object-contain" />
+               </div>
                <div>
-                  <h3 className="font-bold text-text-primary">Peach Theme</h3>
-                  <p className="text-sm text-text-tertiary">따뜻하고 달콤한 피치 컬러 테마</p>
+                  <h3 className="font-bold text-ink">Dingle Theme</h3>
+                  <p className="text-sm text-ink-tertiary">빙글빙글 딩글딩글 크림 컬러 테마</p>
                </div>
             </div>
          </div>
          
-         <div className="pt-4 flex items-center gap-2 opacity-50 text-sm">
+         <div className="pt-4 flex items-center gap-2 opacity-50 text-sm text-ink-secondary">
             <span>dingle.kr</span>
             <span>·</span>
             <span>made by fan</span>

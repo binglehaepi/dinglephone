@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
-import { ChevronLeft, Edit3, Search } from 'lucide-react';
+import { ChevronLeft, Edit3, Search, Plus, Trash2 } from 'lucide-react';
 import { DinglePhoneData, NoteItem } from '../../types';
+import { usePhone } from '../../context/PhoneContext';
+import { EditSheet, DingleInput, SaveButton } from '../EditSheet';
 
 interface NotesAppProps {
   data: DinglePhoneData;
@@ -8,20 +10,54 @@ interface NotesAppProps {
 }
 
 export const NotesApp: React.FC<NotesAppProps> = ({ data, onClose }) => {
+  const { isEditable, currentPhone, updateAppData } = usePhone();
   const [selectedNote, setSelectedNote] = useState<NoteItem | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newContent, setNewContent] = useState('');
+
+  const handleAdd = () => {
+    if (!newTitle.trim() || !currentPhone) return;
+    const newNote: NoteItem = {
+      title: newTitle,
+      content: newContent,
+      updatedAt: new Date().toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }).replace(/\s/g, ''),
+    };
+    const updated = [...currentPhone.apps.notes, newNote];
+    updateAppData('notes', updated);
+    setShowAdd(false);
+    setNewTitle('');
+    setNewContent('');
+  };
+
+  const handleDelete = (index: number) => {
+    if (!currentPhone) return;
+    const updated = currentPhone.apps.notes.filter((_, i) => i !== index);
+    updateAppData('notes', updated);
+    setSelectedNote(null);
+  };
 
   if (selectedNote) {
+    const noteIndex = data.apps.notes.findIndex(n => n.title === selectedNote.title && n.updatedAt === selectedNote.updatedAt);
     return (
-      <div className="flex flex-col h-full bg-white text-text-primary animate-in slide-in-from-right duration-200">
-         <div className="pt-[54px] pb-4 px-6 flex items-center gap-2 sticky top-0 bg-white z-10 border-b border-bg-secondary">
-          <button onClick={() => setSelectedNote(null)} className="text-accent -ml-2 p-1 flex items-center">
-            <ChevronLeft size={28} />
+      <div className="flex flex-col h-full bg-cream-50 text-ink">
+         <div className="pt-[54px] pb-4 px-6 flex items-center justify-between sticky top-0 bg-cream-50 z-10 border-b border-cream-300">
+          <button onClick={() => setSelectedNote(null)} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+            <ChevronLeft size={16} className="text-ink" />
           </button>
+          {isEditable && noteIndex >= 0 && (
+            <button
+              onClick={() => handleDelete(noteIndex)}
+              className="w-8 h-8 rounded-xl bg-red-50 flex items-center justify-center"
+            >
+              <Trash2 size={14} className="text-red-500" />
+            </button>
+          )}
         </div>
         <div className="p-8">
-           <h1 className="text-3xl font-bold mb-2">{selectedNote.title}</h1>
-           <div className="text-xs text-text-tertiary mb-8 font-display">{selectedNote.updatedAt}</div>
-           <p className="text-lg text-text-secondary whitespace-pre-line leading-loose">
+           <h1 className="text-3xl font-bold mb-2 text-ink">{selectedNote.title}</h1>
+           <div className="text-xs text-ink-tertiary mb-8 font-display">{selectedNote.updatedAt}</div>
+           <p className="text-lg text-ink-secondary whitespace-pre-line leading-loose">
              {selectedNote.content}
            </p>
         </div>
@@ -30,19 +66,29 @@ export const NotesApp: React.FC<NotesAppProps> = ({ data, onClose }) => {
   }
 
   return (
-    <div className="flex flex-col h-full bg-bg-primary text-text-primary">
+    <div className="flex flex-col h-full bg-cream-100 text-ink">
       <div className="pt-[54px] px-6 pb-2">
          <div className="flex justify-between items-center mb-4">
-             <button onClick={onClose} className="text-text-secondary -ml-2">
-                <ChevronLeft size={28} />
+             <button onClick={onClose} className="w-8 h-8 rounded-xl bg-cream-200 flex items-center justify-center">
+                <ChevronLeft size={16} className="text-ink" />
              </button>
-             <h1 className="text-2xl font-bold">Notes</h1>
-             <button className="w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center shadow-md">
-                 <Edit3 size={18} />
-             </button>
+             <h1 className="text-2xl font-bold text-ink">Notes</h1>
+             {isEditable ? (
+               <button
+                 onClick={() => setShowAdd(true)}
+                 className="w-10 h-10 rounded-full flex items-center justify-center shadow-md"
+                 style={{ background: 'var(--accent)', color: 'white' }}
+               >
+                 <Plus size={18} />
+               </button>
+             ) : (
+               <button className="w-10 h-10 rounded-full bg-dingle text-white flex items-center justify-center shadow-md">
+                   <Edit3 size={18} />
+               </button>
+             )}
          </div>
          
-         <div className="bg-white h-12 rounded-[16px] flex items-center px-4 gap-2 text-text-tertiary border border-bg-secondary shadow-sm mb-6">
+         <div className="bg-cream-200 h-12 rounded-full flex items-center px-4 gap-2 text-ink-tertiary border border-cream-300 mb-6">
             <Search size={18} />
             <span className="text-sm">Search notes...</span>
          </div>
@@ -54,19 +100,40 @@ export const NotesApp: React.FC<NotesAppProps> = ({ data, onClose }) => {
               <div 
                 key={i} 
                 onClick={() => setSelectedNote(note)}
-                className="bg-white p-5 rounded-[20px] shadow-sm border border-bg-secondary active:scale-[0.98] transition-transform"
+                className="bg-cream-50 p-5 rounded-dingle shadow-card border border-cream-300 active:scale-[0.98] transition-transform"
               >
                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-bold text-lg">{note.title}</h3>
-                    <span className="text-xs text-text-tertiary font-display bg-bg-secondary px-2 py-1 rounded-md">{note.updatedAt}</span>
+                    <h3 className="font-bold text-lg text-ink">{note.title}</h3>
+                    <span className="text-xs text-ink-tertiary font-display bg-cream-200 px-2 py-1 rounded-md">{note.updatedAt}</span>
                  </div>
-                 <div className="text-sm text-text-secondary line-clamp-2 leading-relaxed opacity-80">
+                 <div className="text-sm text-ink-secondary line-clamp-2 leading-relaxed opacity-80">
                     {note.content}
                  </div>
               </div>
             ))}
+
+            {isEditable && data.apps.notes.length === 0 && (
+              <div className="text-center py-12">
+                <div className="text-4xl mb-3">📝</div>
+                <p className="text-sm text-ink-tertiary">아직 메모가 없어요</p>
+                <button
+                  onClick={() => setShowAdd(true)}
+                  className="mt-3 text-sm font-bold px-4 py-2 rounded-full"
+                  style={{ background: 'var(--accent-light)', color: 'var(--accent)' }}
+                >
+                  + 첫 메모 추가
+                </button>
+              </div>
+            )}
          </div>
       </div>
+
+      {/* Add Note Sheet */}
+      <EditSheet isOpen={showAdd} onClose={() => setShowAdd(false)} title="📝 메모 추가">
+        <DingleInput label="제목" value={newTitle} onChange={setNewTitle} placeholder="메모 제목" />
+        <DingleInput label="내용" value={newContent} onChange={setNewContent} placeholder="메모 내용을 입력하세요" multiline />
+        <SaveButton onClick={handleAdd} disabled={!newTitle.trim()} label="추가" />
+      </EditSheet>
     </div>
   );
 };

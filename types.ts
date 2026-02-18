@@ -7,7 +7,7 @@ export interface PhoneTheme {
 
 export interface PhotoItem {
   id: string;
-  imageUrl: string;
+  imageUrl?: string;
   emoji: string;
   caption: string;
   memo: string;
@@ -46,6 +46,7 @@ export interface MusicSong {
   albumColor: string;
   duration: string;
   sourceUrl?: string;
+  youtubeId?: string;
 }
 
 export interface CalendarEvent {
@@ -117,12 +118,54 @@ export interface WidgetData {
   tapTarget?: string;
 }
 
+export type IconShape = 'square' | 'circle' | 'heart' | 'droplet' | 'diamond';
+
+export type WidgetFrameType =
+  | 'tamagotchi'   // 🥚 다마고치
+  | 'retrophone'   // 📱 레트로폰
+  | 'retrotv'      // 📺 레트로TV
+  | 'browser'      // 🖥️ 브라우저창
+  | 'nintendods';  // 🎮 닌텐도DS
+
 export interface AppIconData {
   id: string;
   icon: string;
   name: string;
   badge?: number;
   iconBg: string;
+  customIconUrl?: string;
+  iconShape?: IconShape;
+}
+
+// 홈 화면 아이템 = 아이콘 또는 위젯
+export interface HomeItem extends AppIconData {
+  type?: 'icon' | 'widget';        // 기본값 'icon'
+  appId?: string;                   // 위젯이 연결된 앱 (type='widget'일 때)
+  widgetFrame?: WidgetFrameType;
+  widgetColor?: string;
+  widgetLabel?: string;
+  widgetSpan?: { cols: number; rows: number };
+  widgetShowIcon?: boolean;  // true면 위젯 내부에 앱 아이콘 표시, false면 콘텐츠 미리보기
+}
+
+export interface MapWishItem {
+  id: string;
+  name: string;
+  emoji: string;
+  location: string;
+  comment: string;
+}
+
+export interface SearchLink {
+  title: string;
+  url: string;
+  emoji: string;
+}
+
+export interface FrequentSite {
+  name: string;
+  icon: string;
+  url: string;
 }
 
 export interface DinglePhoneData {
@@ -178,7 +221,76 @@ export interface DinglePhoneData {
   };
   homeScreen: {
     widgets: WidgetData[];
-    appLayout: AppIconData[];
+    appLayout: HomeItem[];
+    dock: AppIconData[];
+  };
+}
+
+// ── 멀티폰 시스템 타입 ──
+
+export interface PhoneData {
+  id: string;
+  isDefault: boolean;
+  createdAt: string;
+
+  owner: {
+    name: string;
+    bio: string;
+    emoji: string;
+  };
+
+  theme: string; // 테마 ID ('default', 'sanrio', 'onepiece', ...)
+
+  apps: {
+    photos: {
+      albumName: string;
+      albumDescription: string;
+      items: PhotoItem[];
+    };
+    social: {
+      feeds: SocialFeedItem[];
+    };
+    map: {
+      title: string;
+      visited: MapPlace[];
+      wishlist: MapWishItem[];
+    };
+    music: {
+      playlistName: string;
+      songs: MusicSong[];
+    };
+    calendar: {
+      events: CalendarEvent[];
+    };
+    notes: NoteItem[];
+    expenses: {
+      monthTotal: number;
+      monthName: string;
+      categories: ExpenseCategory[];
+      items: ExpenseItem[];
+      monthlyQuote: string;
+    };
+    wishlistShop: {
+      items: WishlistItem[];
+    };
+    messages: MessageItem[];
+    guestbook: {
+      initialEntries: GuestbookEntry[];
+    };
+    search: {
+      recentLinks: SearchLink[];
+      frequentSites: FrequentSite[];
+    };
+    appStore: {
+      appName: string;
+      rating: number;
+      reviews: ReviewItem[];
+    };
+  };
+
+  homeScreen: {
+    widgets: WidgetData[];
+    appLayout: HomeItem[];
     dock: AppIconData[];
   };
 }
