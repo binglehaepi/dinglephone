@@ -1,0 +1,5 @@
+{
+  "name": "Dingle Phone",
+  "description": "A mobile-first web app that simulates viewing a fan's smartphone. Experience their customized interface, photos, music, and schedule in a realistic OS environment.",
+  "requestFramePermissions": []
+}
