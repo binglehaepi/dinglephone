@@ -118,7 +118,7 @@ export interface WidgetData {
   tapTarget?: string;
 }
 
-export type IconShape = 'square' | 'circle' | 'heart' | 'droplet' | 'diamond';
+export type IconShape = 'square' | 'circle' | 'heart' | 'droplet' | 'diamond' | 'butterfly' | 'ribbon';
 
 export type WidgetFrameType =
   | 'tamagotchi'   // 🥚 다마고치
@@ -225,6 +225,7 @@ export interface DinglePhoneData {
     widgets: WidgetData[];
     appLayout: HomeItem[];
     dock: AppIconData[];
+    iconShape?: IconShape;
   };
 }
 
@@ -294,5 +295,6 @@ export interface PhoneData {
     widgets: WidgetData[];
     appLayout: HomeItem[];
     dock: AppIconData[];
+    iconShape?: IconShape;
   };
 }

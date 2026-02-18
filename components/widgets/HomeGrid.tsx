@@ -180,6 +180,7 @@ interface SortableIconItemProps {
   isSelected: boolean;
   hasSelection: boolean;
   onClick: () => void;
+  globalIconShape?: import('../../types').IconShape;
 }
 
 const SortableIconItem: React.FC<SortableIconItemProps> = ({
@@ -189,6 +190,7 @@ const SortableIconItem: React.FC<SortableIconItemProps> = ({
   isSelected,
   hasSelection,
   onClick,
+  globalIconShape,
 }) => {
   const {
     attributes,
@@ -244,7 +246,7 @@ const SortableIconItem: React.FC<SortableIconItemProps> = ({
             background: bg,
             border: `1.5px solid ${bg}`,
             boxShadow: '0 1px 3px rgba(61,47,47,0.05)',
-            ...getIconShapeStyle(item.iconShape),
+            ...getIconShapeStyle(item.iconShape || globalIconShape),
           }}
         >
           {item.customIconUrl ? (
@@ -459,6 +461,7 @@ export const HomeGrid: React.FC<HomeGridProps> = ({
               isSelected={isSelected}
               hasSelection={hasSelection}
               onClick={handleClick}
+              globalIconShape={phone.homeScreen.iconShape}
             />
           );
         })}

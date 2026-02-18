@@ -871,7 +871,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
                       background: bg,
                       border: `1.5px solid ${bg}`,
                       boxShadow: '0 1px 3px rgba(61,47,47,0.05)',
-                      ...getIconShapeStyle(app.iconShape),
+                      ...getIconShapeStyle(app.iconShape || data.homeScreen.iconShape),
                     }}
                   >
                     {app.customIconUrl ? (
@@ -925,7 +925,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ data, phone, onOpenApp }
                       background: bg,
                       border: `1.5px solid ${bg}`,
                       boxShadow: '0 1px 3px rgba(61,47,47,0.05)',
-                      ...getIconShapeStyle(app.iconShape),
+                      ...getIconShapeStyle(app.iconShape || data.homeScreen.iconShape),
                     }}
                   >
                     {app.customIconUrl ? (

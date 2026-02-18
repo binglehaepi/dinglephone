@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react';
 import {
   ChevronLeft, Check, Lock, ImagePlus, Palette, Type, Sticker,
-  Shield, Zap, Plus, X,
+  Shield, Zap, Plus, X, Shapes,
 } from 'lucide-react';
 import { AdminPanel } from '../AdminPanel';
 import { ADMIN_PASSWORD } from '../../lib/moderation';
+import { ICON_SHAPES, getIconShapeStyle } from '../../lib/iconShapes';
+import { IconShape } from '../../types';
 import {
   homeWallpapers,
   lockWallpapers,
@@ -543,6 +545,53 @@ export const SettingsApp: React.FC<SettingsAppProps> = ({
             </button>
           </div>
         </div>
+
+        {/* ── 아이콘 모양 ── */}
+        {isEditable && (
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <Shapes size={16} className="text-dingle" />
+              <span className="text-sm font-bold text-ink">아이콘 모양</span>
+            </div>
+            <div className="grid grid-cols-4 gap-3">
+              {ICON_SHAPES.map((shape) => {
+                const currentShape = currentPhone?.homeScreen.iconShape || 'square';
+                const isSelected = shape.id === currentShape;
+                return (
+                  <button
+                    key={shape.id}
+                    onClick={() => {
+                      if (currentPhone) {
+                        updateCurrentPhone({
+                          homeScreen: { ...currentPhone.homeScreen, iconShape: shape.id as IconShape },
+                        });
+                        showToast(`아이콘 모양: ${shape.name} ${shape.emoji}`);
+                      }
+                    }}
+                    className="flex flex-col items-center gap-2 group"
+                  >
+                    <div
+                      className={`w-14 h-14 flex items-center justify-center overflow-hidden transition-all duration-200 group-active:scale-90 ${
+                        isSelected ? 'ring-2' : ''
+                      }`}
+                      style={{
+                        background: isSelected ? 'var(--accent-light)' : 'var(--bg-card)',
+                        border: isSelected ? '2px solid var(--accent)' : '1.5px solid var(--border)',
+                        ...getIconShapeStyle(shape.id),
+                        ...(isSelected ? { '--tw-ring-color': 'var(--accent)' } as any : {}),
+                      }}
+                    >
+                      <span className="text-xl">{shape.emoji}</span>
+                    </div>
+                    <span className={`text-[10px] font-medium ${isSelected ? 'text-dingle-dark' : 'text-ink-tertiary'}`}>
+                      {shape.name}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── 전광판 문구 ── */}
         {isEditable && (
