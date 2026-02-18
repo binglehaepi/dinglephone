@@ -308,6 +308,7 @@ export const defaultPhone: PhoneData = {
   },
 
   homeScreen: {
+    iconShape: 'heart',
     widgets: [
       {
         type: 'info',

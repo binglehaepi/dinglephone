@@ -118,7 +118,7 @@ export interface WidgetData {
   tapTarget?: string;
 }
 
-export type IconShape = 'square' | 'circle' | 'heart' | 'droplet' | 'diamond' | 'butterfly' | 'ribbon';
+export type IconShape = 'square' | 'circle' | 'heart' | 'droplet' | 'diamond' | 'butterfly';
 
 export type WidgetFrameType =
   | 'tamagotchi'   // 🥚 다마고치
