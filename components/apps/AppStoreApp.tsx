@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronLeft, Send, Star, Bell, CheckCircle, Flag } from 'lucide-react';
+import { ChevronLeft, Send, Star, Flag } from 'lucide-react';
 import { DinglePhoneData, ReviewItem } from '../../types';
 import { addDocument, subscribeToCollection, updateDocument } from '../../lib/firebase';
 import { containsBadWords } from '../../lib/moderation';
@@ -15,9 +15,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({ data, onClose }) => {
   const [newRating, setNewRating] = useState(5);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const [waitlistEmail, setWaitlistEmail] = useState('');
-  const [isWaitlistSubmitting, setIsWaitlistSubmitting] = useState(false);
-  const [waitlistDone, setWaitlistDone] = useState(false);
 
   const demoReviews = data.apps.appStore.reviews;
 
@@ -74,22 +71,6 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({ data, onClose }) => {
     }
   };
 
-  const handleWaitlist = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!waitlistEmail.trim()) return;
-
-    setIsWaitlistSubmitting(true);
-    try {
-      await addDocument('waitlist', {
-        email: waitlistEmail,
-      });
-      setWaitlistDone(true);
-      setWaitlistEmail('');
-    } catch (err) {
-      console.error('대기 리스트 등록 실패:', err);
-    }
-    setIsWaitlistSubmitting(false);
-  };
 
   return (
     <div className="flex flex-col h-full bg-cream-100 text-ink">
@@ -211,45 +192,7 @@ export const AppStoreApp: React.FC<AppStoreAppProps> = ({ data, onClose }) => {
              </div>
          </div>
 
-         {/* Waitlist */}
-         <div className="p-6">
-             <div className="bg-gradient-to-r from-dingle/10 to-dingle-light p-5 rounded-dingle-lg border border-dingle/15">
-                 <div className="flex items-center gap-3 mb-3">
-                     <div className="w-10 h-10 rounded-full bg-dingle/10 flex items-center justify-center">
-                         <Bell size={18} className="text-dingle-dark" />
-                     </div>
-                     <div>
-                         <h3 className="font-bold text-sm text-ink">새 기능 알림 받기</h3>
-                         <p className="text-[11px] text-ink-tertiary">테마 커스텀 출시 시 가장 먼저 알려드려요!</p>
-                     </div>
-                 </div>
-
-                 {waitlistDone ? (
-                     <div className="flex items-center gap-2 bg-cream-50/80 p-3 rounded-xl text-sm">
-                         <CheckCircle size={16} className="text-green-500" />
-                         <span className="text-ink-secondary">등록 완료! 출시되면 알려드릴게요 💌</span>
-                     </div>
-                 ) : (
-                     <form onSubmit={handleWaitlist} className="flex gap-2">
-                         <input
-                             type="email"
-                             required
-                             className="flex-1 bg-cream-50 rounded-xl px-3 py-2.5 text-sm outline-none border border-dingle/10 focus:border-dingle/30 transition-colors text-ink placeholder:text-ink-tertiary"
-                             placeholder="이메일을 입력하세요"
-                             value={waitlistEmail}
-                             onChange={(e) => setWaitlistEmail(e.target.value)}
-                         />
-                         <button
-                             type="submit"
-                             disabled={isWaitlistSubmitting}
-                             className="bg-dingle text-white px-4 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap shadow-sm active:scale-95 transition-transform disabled:opacity-50"
-                         >
-                             {isWaitlistSubmitting ? '...' : '신청'}
-                         </button>
-                     </form>
-                 )}
-             </div>
-         </div>
+         {/* Waitlist - 추후 활성화 */}
       </div>
     </div>
   );
